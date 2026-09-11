@@ -41,7 +41,8 @@ export interface ConfirmedMeeting {
   semana_label?: string | null;
   estado: string;
   sala: "A";
-  parts: (PartDraft & { sala: "A" })[];
+  // Fase 2B: cada part tem UUID próprio (assign valida UUID).
+  parts: (PartDraft & { sala: "A"; id: string })[];
 }
 
 const jobs = new Map<string, ImportJob>();

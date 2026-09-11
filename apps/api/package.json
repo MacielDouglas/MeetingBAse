@@ -7,7 +7,8 @@
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test:imports": "tsx src/lib/__check_imports.ts",
-    "test:eligibility": "tsx src/lib/__check_eligibility.ts"
+    "test:eligibility": "tsx src/lib/__check_eligibility.ts",
+    "test:assign": "tsx src/lib/__check_assign.ts"
   },
   "dependencies": {
     "@fastify/multipart": "^9.4.0",

@@ -105,7 +105,8 @@ export async function importsRoutes(app: FastifyInstance) {
       semana_label: w.semanaLabel,
       estado: "draft",
       sala: "A" as const,
-      parts: w.parts,
+      // Fase 2B: UUID por part (POST /parts/:partId/assign valida UUID).
+      parts: w.parts.map((p) => ({ ...p, id: randomUUID() })),
     }));
     saveConfirmedMeetings(meetings);
 
