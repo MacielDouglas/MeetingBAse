@@ -1,5 +1,7 @@
 // Cliente HTTP mínimo para la API Meeting Base (iOS + Android).
-// Sin dependencias nativas: solo fetch + FormData.
+// JSON via fetch; subida de archivos via expo-file-system (multipart nativo).
+
+import * as FileSystem from "expo-file-system/legacy";
 
 export const API_URL =
   process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -52,16 +54,41 @@ export async function uploadJwpub(
   fileName: string,
   mimeType = "application/octet-stream"
 ): Promise<UploadPreview> {
-  const form = new FormData();
-  // @ts-expect-error RN FormData acepta { uri, name, type }
-  form.append("file", { uri: fileUri, name: fileName, type: mimeType });
-  const res = await fetch(`${API_URL}/c/${CONGREGATION_ID}/imports`, {
-    method: "POST",
-    body: form,
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(toErrorMessage(body, "Error al subir el archivo"));
-  return body as UploadPreview;
+  // Subida multipart nativa (iOS + Android). fetch + FormData con
+  // { uri, name, type } falla en iOS ("Unsupported FormDataPart implementation").
+  // El servidor usa el filename para detectar el tipo (mwb_/w_), así que se
+  // copia a caché con el nombre original antes de subir.
+  const safeName =
+    fileName.split(/[\\/]/).pop()?.replace(/[^A-Za-z0-9._-]+/g, "_") ||
+    "archivo.jwpub";
+  const destUri = `${FileSystem.cacheDirectory}mb-upload-${Date.now()}-${safeName}`;
+  await FileSystem.copyAsync({ from: fileUri, to: destUri });
+  try {
+    const result = await FileSystem.uploadAsync(
+      `${API_URL}/c/${CONGREGATION_ID}/imports`,
+      destUri,
+      {
+        httpMethod: "POST",
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: "file",
+        mimeType,
+      }
+    );
+    let body: unknown = {};
+    try {
+      body = result.body ? JSON.parse(result.body) : {};
+    } catch {
+      body = {};
+    }
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error(toErrorMessage(body, "Error al subir el archivo"));
+    }
+    return body as UploadPreview;
+  } finally {
+    await FileSystem.deleteAsync(destUri, { idempotent: true }).catch(
+      () => {}
+    );
+  }
 }
 
 export async function confirmImport(jobId: string, weeks?: number[]): Promise<ConfirmResult> {
