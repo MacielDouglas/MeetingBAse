@@ -1,10 +1,31 @@
 // Cliente HTTP mínimo para la API Meeting Base (iOS + Android).
 // JSON via fetch; subida de archivos via expo-file-system (multipart nativo).
 
-import * as FileSystem from "expo-file-system/legacy";
+import { File, Paths, UploadType } from "expo-file-system";
+import { Platform } from "react-native";
 
-export const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
+// En Android Emulator, localhost es el propio emulador.
+// 10.0.2.2 es el alias a la PC host. En iOS Simulator localhost sí
+// llega a la PC. En dispositivo físico hay que definir
+// EXPO_PUBLIC_API_URL con la IP LAN de la PC (ej. http://192.168.15.186:3001).
+const DEFAULT_API_URL =
+  Platform.OS === "android" ? "http://10.0.2.2:3001" : "http://localhost:3001";
+
+export const API_URL = (
+  process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL
+).replace(/\/+$/, "");
+
+const UPLOAD_TIMEOUT_MS = 120_000;
+
+function uploadSignal(): AbortSignal | undefined {
+  try {
+    const AnyAbort = AbortSignal as unknown as {
+      timeout?: (ms: number) => AbortSignal;
+    };
+    if (typeof AnyAbort.timeout === "function") return AnyAbort.timeout(UPLOAD_TIMEOUT_MS);
+  } catch {}
+  return undefined;
+}
 
 // TODO Fase 2: congregation_id vendrá de auth/sesión. Fijo en Fase 1.
 export const CONGREGATION_ID = "00000000-0000-0000-0000-000000000000";
@@ -49,45 +70,89 @@ function toErrorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
+function parseUploadBody(result: { body: string; status: number }): UploadPreview {
+  let body: unknown = {};
+  try {
+    body = result.body ? JSON.parse(result.body) : {};
+  } catch {
+    body = {};
+  }
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(toErrorMessage(body, "Error al subir el archivo"));
+  }
+  return body as UploadPreview;
+}
+
+export async function uploadJwpubFile(
+  picked: File,
+  mimeType = "application/octet-stream"
+): Promise<UploadPreview> {
+  // Subida directa del File devuelto por el picker nativo (iOS + Android).
+  // Sin copia intermedia: evita "isn't readable" / "Missing READ permission"
+  // de DocumentPicker en Android (Expo Go). El filename multipart usa
+  // picked.name, que preserva mwb_*.jwpub para detección en el servidor.
+  const result = await picked.upload(
+    `${API_URL}/c/${CONGREGATION_ID}/imports`,
+    {
+      httpMethod: "POST",
+      uploadType: UploadType.MULTIPART,
+      fieldName: "file",
+      mimeType,
+      signal: uploadSignal(),
+    }
+  );
+  return parseUploadBody(result);
+}
+
 export async function uploadJwpub(
   fileUri: string,
   fileName: string,
   mimeType = "application/octet-stream"
 ): Promise<UploadPreview> {
-  // Subida multipart nativa (iOS + Android). fetch + FormData con
-  // { uri, name, type } falla en iOS ("Unsupported FormDataPart implementation").
-  // El servidor usa el filename para detectar el tipo (mwb_/w_), así que se
-  // copia a caché con el nombre original antes de subir.
+  // Fallback DocumentPicker (iOS + Android). Intenta subida directa primero;
+  // solo copia a caché con el nombre original si hace falta (el servidor
+  // usa el filename para detectar mwb_/w_).
   const safeName =
     fileName.split(/[\\/]/).pop()?.replace(/[^A-Za-z0-9._-]+/g, "_") ||
     "archivo.jwpub";
-  const destUri = `${FileSystem.cacheDirectory}mb-upload-${Date.now()}-${safeName}`;
-  await FileSystem.copyAsync({ from: fileUri, to: destUri });
+  const src = new File(fileUri);
   try {
-    const result = await FileSystem.uploadAsync(
+    const direct = await src.upload(
       `${API_URL}/c/${CONGREGATION_ID}/imports`,
-      destUri,
       {
         httpMethod: "POST",
-        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        uploadType: UploadType.MULTIPART,
         fieldName: "file",
         mimeType,
+        signal: uploadSignal(),
       }
     );
-    let body: unknown = {};
-    try {
-      body = result.body ? JSON.parse(result.body) : {};
-    } catch {
-      body = {};
+    // Si el nombre del cache (uuid) no preserva mwb_, el servidor puede
+    // rechazar; en ese caso seguimos al flujo con copia renombrada.
+    if (direct.status >= 200 && direct.status < 300) {
+      try {
+        return parseUploadBody(direct);
+      } catch {}
     }
-    if (result.status < 200 || result.status >= 300) {
-      throw new Error(toErrorMessage(body, "Error al subir el archivo"));
-    }
-    return body as UploadPreview;
-  } finally {
-    await FileSystem.deleteAsync(destUri, { idempotent: true }).catch(
-      () => {}
+  } catch {}
+  const dest = new File(Paths.cache, `mb-upload-${Date.now()}-${safeName}`);
+  await src.copy(dest);
+  try {
+    const result = await dest.upload(
+      `${API_URL}/c/${CONGREGATION_ID}/imports`,
+      {
+        httpMethod: "POST",
+        uploadType: UploadType.MULTIPART,
+        fieldName: "file",
+        mimeType,
+        signal: uploadSignal(),
+      }
     );
+    return parseUploadBody(result);
+  } finally {
+    try {
+      if (dest.exists) dest.delete();
+    } catch {}
   }
 }
 

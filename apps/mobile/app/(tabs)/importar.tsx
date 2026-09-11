@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Button, ScrollView, Text, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
+import { File } from "expo-file-system";
 import { useMutation } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
 import {
+  API_URL,
   confirmImport,
   isNetworkError,
   uploadJwpub,
+  uploadJwpubFile,
   type ConfirmResult,
   type UploadPreview,
 } from "../../lib/api";
@@ -22,14 +25,17 @@ export default function Importar() {
   const [offline, setOffline] = useState(false);
 
   const upload = useMutation({
-    mutationFn: ({ uri, name }: { uri: string; name: string }) =>
-      uploadJwpub(uri, name),
+    mutationFn: async (input: { uri?: string; name?: string; file?: File }) => {
+      if (input.file) return uploadJwpubFile(input.file);
+      return uploadJwpub(input.uri ?? "", input.name ?? "archivo.jwpub");
+    },
     onSuccess: (data) => {
       setPreview(data);
       setResult(null);
       setOffline(false);
     },
     onError: (e) => {
+      console.log("[importar] upload error:", e);
       setOffline(isNetworkError(e));
     },
   });
@@ -47,6 +53,23 @@ export default function Importar() {
 
   async function pickFile() {
     setOffline(false);
+    // Picker nativo de expo-file-system (iOS + Android): devuelve un File
+    // legible sin copia intermedia. Evita "isn't readable" / "Missing READ
+    // permission" de DocumentPicker en Android (Expo Go).
+    try {
+      const res = await File.pickFileAsync();
+      if (!res.canceled && res.result) {
+        const f = res.result;
+        setFileName(f.name ?? "archivo.jwpub");
+        setFileUri(f.uri);
+        setPreview(null);
+        setResult(null);
+        upload.mutate({ file: f });
+        return;
+      }
+      if (res.canceled) return;
+    } catch {}
+    // Fallback DocumentPicker.
     const picked = await DocumentPicker.getDocumentAsync({
       type: "*/*",
       copyToCacheDirectory: true,
@@ -66,6 +89,7 @@ export default function Importar() {
       <Text>
         {es["Sala fija"]}: {es["Sala A"]}
       </Text>
+      <Text style={{ fontSize: 12, color: "#666" }}>API: {API_URL}</Text>
 
       <Button
         title={es["Seleccionar archivo .jwpub"]}
@@ -83,10 +107,13 @@ export default function Importar() {
 
       {upload.isPending ? <Text>{es["Subiendo..."]}</Text> : null}
       {upload.isError ? (
-        <Text>
-          {es["Error al subir el archivo"]}:{" "}
-          {(upload.error as Error)?.message ?? ""}
-        </Text>
+        <View style={{ gap: 4 }}>
+          <Text>
+            {es["Error al subir el archivo"]}:{" "}
+            {(upload.error as Error)?.message ?? ""}
+          </Text>
+          <Text style={{ fontSize: 12, color: "#666" }}>API: {API_URL}</Text>
+        </View>
       ) : null}
 
       {offline ? (
