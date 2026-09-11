@@ -87,11 +87,11 @@ function bundleMem(
 ): Bundle | null {
   const hit = findMemPart(congId, partId);
   if (!hit) return null;
-  const tit = getMemPublisher(titularId);
+  const tit = getMemPublisher(titularId, congId);
   if (!tit) return null;
   let ayu: PublisherRef | null = null;
   if (ayudanteId) {
-    ayu = getMemPublisher(ayudanteId) ?? null;
+    ayu = getMemPublisher(ayudanteId, congId) ?? null;
     if (!ayu) return null;
   }
   return {
@@ -147,7 +147,7 @@ export async function assignPart(
       return { status: 404, body: { error: "Parte no encontrada" } };
     const titOk =
       (isDbConfigured() && (await getNeonPublisher(titularId))) ||
-      getMemPublisher(titularId);
+      getMemPublisher(titularId, congId);
     if (!titOk)
       return { status: 404, body: { error: "Titular no encontrado" } };
     return { status: 404, body: { error: "Ayudante no encontrado" } };

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { listConfirmedMeetings } from "./importStore.js";
+import { listPublishers } from "./publishersStore.js";
 import type { ListedMeeting } from "./repoNeon.js";
 
 // Fase 2B — fallback in-memory para assign/publish/sync.
@@ -44,8 +45,25 @@ export function upsertMemPublisher(p: MemPublisher): MemPublisher {
   return p;
 }
 
-export function getMemPublisher(id: string): MemPublisher | undefined {
-  return publishers.get(id);
+export function getMemPublisher(id: string, congId?: string): MemPublisher | undefined {
+  const mem = publishers.get(id);
+  if (mem) return mem;
+  if (congId) {
+    const pubs = listPublishers(congId);
+    const found = pubs.find((p) => p.id === id);
+    if (found) {
+      const memPub: MemPublisher = {
+        id: found.id,
+        sexo: found.sexo,
+        cargo: found.cargo,
+        congregationId: found.congregationId,
+        nombre: found.nombre,
+      };
+      publishers.set(id, memPub);
+      return memPub;
+    }
+  }
+  return undefined;
 }
 
 export interface MemPartHit {
