@@ -52,5 +52,10 @@
   "Ocultar partes": "Ocultar partes",
   "Selecciona reunión y parte": "Selecciona reunión y parte",
   "partes": "partes",
-  "Error al cargar el programa": "Error al cargar el programa"
+  "Error al cargar el programa": "Error al cargar el programa",
+  "Archivos subidos": "Archivos subidos",
+  "Archivo reemplazado": "Archivo reemplazado (ya existía uno del mismo tipo)",
+  "Fusionar archivos": "Fusionar archivos",
+  "Fusionando...": "Fusionando...",
+  "Error al fusionar": "Error al fusionar"
 }

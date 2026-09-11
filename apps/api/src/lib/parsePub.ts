@@ -12,22 +12,16 @@ export interface ParsedPub {
 // Throws Error with Spanish message for the client.
 export async function parsePubFile(tmpPath: string, filename: string): Promise<ParsedPub> {
   const kind = detectPubKind(filename);
-  if (kind === "unsupported") {
-    throw new Error(
-      "Archivo no compatible: solo se aceptan mwb_S_*.jwpub y w_S_*.jwpub. " +
-        "sjj (cánticos) y S-34 (discursos) requieren confirmación de formato."
-    );
-  }
   let rows: ParsedPub["rows"];
   try {
     rows = (await loadPub(tmpPath)) as ParsedPub["rows"];
   } catch (e) {
     throw new Error(
-      "No se pudo leer el archivo .jwpub. Verifique que sea mwb o Atalaya válido."
+      `No se pudo leer el archivo .jwpub (${filename}). Verifique que sea un archivo válido.`
     );
   }
   if (!Array.isArray(rows) || rows.length === 0) {
-    throw new Error("El archivo no contiene semanas para importar.");
+    throw new Error(`El archivo ${filename} no contiene datos para importar.`);
   }
   return { kind, filename, rows };
 }

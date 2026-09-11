@@ -6,11 +6,14 @@ import { rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { congIdParam, confirmBody, jobParam, isJwpubFilename, MAX_JWPUB_BYTES } from "../lib/validators.js";
 import { parsePubFile } from "../lib/parsePub.js";
-import { createJob, getJob, confirmJob, saveConfirmedMeetings } from "../lib/importStore.js";
+import {
+  createJob, getJob, confirmJob, saveConfirmedMeetings,
+  removeJob, listUploaded, findDuplicate, mergeJobs,
+} from "../lib/importStore.js";
 import { saveConfirm } from "../lib/repoNeon.js";
 
 // Fase 1: upload .jwpub -> loadPub -> preview -> confirm -> meetings draft.
-// Room always A. Neon persistence comes in Fase 2 (TODO).
+// Multi-file: mwb, w, s34, sjj. Duplicate detection per kind.
 // Temporarios siempre en D:\temp (nunca os.tmpdir / C:).
 
 const MB_TMP_DIR = "D:\\temp";
@@ -19,14 +22,13 @@ function ensureTmpDir(dir: string) {
   mkdirSync(dir, { recursive: true });
 }
 
-// loadPub valida o basename do caminho (ex.: mwb_S_202611.jwpub).
-// Por isso o temporario preserva o nome original dentro de pasta unica.
 function safeFilename(name: string): string {
   const base = name.split(/[\\/]/).pop() ?? "upload.jwpub";
   return base.replace(/[^A-Za-z0-9._()-]/g, "_");
 }
 
 export async function importsRoutes(app: FastifyInstance) {
+  // Upload a .jwpub file. Returns preview with duplicate check.
   app.post("/c/:id/imports", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
@@ -50,11 +52,26 @@ export async function importsRoutes(app: FastifyInstance) {
         return reply.code(413).send({ error: "Archivo muy grande (máx. 25 MB)" });
       }
       const parsed = await parsePubFile(tmpPath, file.filename);
+
+      // Duplicate check
+      const dup = findDuplicate(params.data.id, parsed.kind);
+      if (dup) {
+        // Remove old job and replace
+        removeJob(dup.jobId);
+      }
+
       const job = createJob(params.data.id, parsed);
+      const uploaded = listUploaded(params.data.id);
       return reply.code(201).send({
         job_id: job.id,
         kind: job.kind,
         filename: job.filename,
+        replaced: !!dup,
+        uploaded_files: uploaded.map((f) => ({
+          filename: f.filename,
+          kind: f.kind,
+          uploaded_at: f.uploadedAt,
+        })),
         weeks: job.weeks.map((w) => ({
           index: w.index,
           fecha: w.fecha,
@@ -71,6 +88,65 @@ export async function importsRoutes(app: FastifyInstance) {
     } finally {
       await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     }
+  });
+
+  // List uploaded files for a congregation
+  app.get("/c/:id/imports/files", async (req, reply) => {
+    const params = congIdParam.safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
+    const files = listUploaded(params.data.id);
+    return {
+      files: files.map((f) => ({
+        filename: f.filename,
+        kind: f.kind,
+        job_id: f.jobId,
+        uploaded_at: f.uploadedAt,
+      })),
+    };
+  });
+
+  // Merge multiple jobs into complete meetings
+  app.post("/c/:id/imports/merge", async (req, reply) => {
+    const params = congIdParam.safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
+
+    const body = (req.body ?? {}) as { job_ids?: string[] };
+    if (!Array.isArray(body.job_ids) || body.job_ids.length === 0) {
+      return reply.code(400).send({ error: "Proporcione job_ids para fusionar" });
+    }
+
+    const merged = mergeJobs(body.job_ids);
+    if (!merged) {
+      return reply.code(404).send({ error: "No se encontraron importaciones para fusionar" });
+    }
+
+    return reply.code(201).send({
+      job_id: merged.id,
+      kind: merged.kind,
+      filename: merged.filename,
+      weeks: merged.weeks.map((w) => ({
+        index: w.index,
+        fecha: w.fecha,
+        tipo: w.tipo,
+        semana: w.semanaLabel,
+        lectura: w.lecturaSemanal ?? w.tituloAtalaya ?? "",
+        parts_count: w.parts.length,
+        needs_review: w.parts.filter((p) => p.needsReview).length,
+      })),
+    });
+  });
+
+  // Delete a single uploaded file/job
+  app.delete("/c/:id/imports/:job", async (req, reply) => {
+    const params = congIdParam.safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
+    const p = jobParam.safeParse(req.params);
+    if (!p.success) return reply.code(400).send({ error: "Importación inválida" });
+
+    const removed = removeJob(p.data.job);
+    if (!removed) return reply.code(404).send({ error: "Importación no encontrada" });
+    const files = listUploaded(params.data.id);
+    return { ok: true, uploaded_files: files.map((f) => ({ filename: f.filename, kind: f.kind })) };
   });
 
   app.get("/imports/:job", async (req, reply) => {
@@ -90,7 +166,6 @@ export async function importsRoutes(app: FastifyInstance) {
     const job = confirmJob(p.data.job, body.data.weeks);
     if (!job) return reply.code(404).send({ error: "Importación no encontrada o ya confirmada" });
 
-    // Draft meetings shaped like Neon rows (sala A fija).
     const meetings = job.weeks.map((w) => ({
       id: randomUUID(),
       congregation_id: job.congregationId,
@@ -105,12 +180,10 @@ export async function importsRoutes(app: FastifyInstance) {
       semana_label: w.semanaLabel,
       estado: "draft",
       sala: "A" as const,
-      // Fase 2B: UUID por part (POST /parts/:partId/assign valida UUID).
       parts: w.parts.map((p) => ({ ...p, id: randomUUID() })),
     }));
     saveConfirmedMeetings(meetings);
 
-    // Fase 2A: intenta persistir en Neon; sin DB sigue en memoria.
     let persistencia: "neon" | "memoria" = "memoria";
     try {
       const saved = await saveConfirm(job, meetings);

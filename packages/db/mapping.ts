@@ -16,16 +16,21 @@ export interface PartDraft {
   needsReview?: boolean;
 }
 
-export type PubKind = "mwb" | "w" | "unsupported";
+export type PubKind = "mwb" | "w" | "s34" | "sjj";
 
-// Detect kind by file name. Only mwb_* and w_* are parsed by loadPub.
-// sjj_* and S-34_* return "unsupported" (custom parser pending, see FASE1).
+// Detect kind by file name.
+// mwb_S_*.jwpub → midweek (Estudio en la Biblia)
+// w_S_*.jwpub   → weekend (Atalaya/Estudio)
+// S-34_S.jwpub  → weekend (Discursos públicos)
+// sjj_S.jwpub   → both meetings (Cánticos)
 export function detectPubKind(filename: string): PubKind {
   const base = filename.split(/[\\/]/).pop() ?? filename;
   const low = base.toLowerCase();
   if (low.startsWith("mwb_")) return "mwb";
   if (low.startsWith("w_")) return "w";
-  return "unsupported";
+  if (low.startsWith("s-34")) return "s34";
+  if (low.startsWith("sjj_")) return "sjj";
+  return "mwb";
 }
 
 const str = (v: unknown) => (v === undefined || v === null ? "" : String(v));
@@ -145,5 +150,38 @@ export function mapWatchtowerToParts(row: MwbRow): PartDraft[] {
     { orden: 2, seccion: "DISCURSO", tipoClave: "discurso_publico", titulo: "Discurso público (elegir de S-34)", duracionMin: 30, requiereAyudante: false, needsReview: true },
     { orden: 3, seccion: "ATALAYA", tipoClave: "w_estudio", titulo: str(row.w_study_title), duracionMin: 60, requiereAyudante: false },
     { orden: 4, seccion: "CANCION", tipoClave: "cancion_final", titulo: s2.titulo, duracionMin: 4, requiereAyudante: false, needsReview: s2.needsReview },
+  ];
+}
+
+// S-34: Discursos públicos. Cada row es un discurso (título, orador, etc.)
+export function mapS34ToParts(row: MwbRow): PartDraft[] {
+  const title = str(row.s34_title || row.title || "Discurso público");
+  const speaker = str(row.s34_speaker || row.speaker);
+  return [
+    {
+      orden: 1,
+      seccion: "DISCURSO",
+      tipoClave: "s34_discurso",
+      titulo: title,
+      detalle: speaker ? `Orador: ${speaker}` : undefined,
+      duracionMin: 30,
+      requiereAyudante: false,
+    },
+  ];
+}
+
+// sjj: Cánticos. Cada row es un canto (número, título).
+export function mapSjjToParts(row: MwbRow): PartDraft[] {
+  const songNum = num(row.sjj_number || row.number);
+  const title = str(row.sjj_title || row.title || "Cántico");
+  return [
+    {
+      orden: 1,
+      seccion: "CANCION",
+      tipoClave: "sjj_cancion",
+      titulo: songNum ? `Canción ${songNum} — ${title}` : title,
+      duracionMin: 3,
+      requiereAyudante: false,
+    },
   ];
 }

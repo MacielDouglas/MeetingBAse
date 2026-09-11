@@ -44,7 +44,19 @@ export interface UploadPreview {
   job_id: string;
   kind: string;
   filename: string;
+  replaced?: boolean;
+  uploaded_files?: UploadedFileInfo[];
   weeks: WeekSummary[];
+}
+
+export interface UploadedFileInfo {
+  filename: string;
+  kind: string;
+  uploaded_at: string;
+}
+
+export interface UploadedFilesResult {
+  files: (UploadedFileInfo & { job_id: string })[];
 }
 
 export interface DraftMeeting {
@@ -165,6 +177,41 @@ export async function confirmImport(jobId: string, weeks?: number[]): Promise<Co
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al confirmar"));
   return body as ConfirmResult;
+}
+
+export async function getUploadedFiles(
+  congregationId = CONGREGATION_ID
+): Promise<UploadedFilesResult> {
+  const res = await fetch(`${API_URL}/c/${congregationId}/imports/files`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(toErrorMessage(body, "Error al cargar archivos"));
+  return body as UploadedFilesResult;
+}
+
+export async function mergeImports(
+  jobIds: string[],
+  congregationId = CONGREGATION_ID
+): Promise<UploadPreview> {
+  const res = await fetch(`${API_URL}/c/${congregationId}/imports/merge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ job_ids: jobIds }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(toErrorMessage(body, "Error al fusionar importaciones"));
+  return body as UploadPreview;
+}
+
+export async function deleteImport(
+  jobId: string,
+  congregationId = CONGREGATION_ID
+): Promise<{ ok: boolean; uploaded_files: { filename: string; kind: string }[] }> {
+  const res = await fetch(`${API_URL}/c/${congregationId}/imports/${jobId}`, {
+    method: "DELETE",
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(toErrorMessage(body, "Error al eliminar"));
+  return body as { ok: boolean; uploaded_files: { filename: string; kind: string }[] };
 }
 
 export interface MeetingPartItem {

@@ -2,11 +2,14 @@ import { randomUUID } from "node:crypto";
 import {
   mapMwbToParts,
   mapWatchtowerToParts,
+  mapS34ToParts,
+  mapSjjToParts,
   type PartDraft,
 } from "../../../../packages/db/mapping.js";
 import type { ParsedPub } from "./parsePub.js";
 
-// Preview model for Fase 1. Room is always A (fixed, no selector).
+// Multi-file import model. Each .jwpub upload creates a job.
+// Jobs can be merged into complete meetings (midweek + weekend).
 
 export interface WeekPreview {
   index: number;
@@ -25,7 +28,7 @@ export interface ImportJob {
   id: string;
   congregationId: string;
   filename: string;
-  kind: "mwb" | "w";
+  kind: "mwb" | "w" | "s34" | "sjj";
   estado: "preview" | "confirmado";
   weeks: WeekPreview[];
   createdAt: string;
@@ -41,32 +44,95 @@ export interface ConfirmedMeeting {
   semana_label?: string | null;
   estado: string;
   sala: "A";
-  // Fase 2B: cada part tem UUID próprio (assign valida UUID).
   parts: (PartDraft & { sala: "A"; id: string })[];
+}
+
+export interface UploadedFile {
+  filename: string;
+  kind: "mwb" | "w" | "s34" | "sjj";
+  jobId: string;
+  uploadedAt: string;
 }
 
 const jobs = new Map<string, ImportJob>();
 const confirmed = new Map<string, ConfirmedMeeting[]>();
+const uploaded = new Map<string, UploadedFile[]>(); // congregationId -> files
 
-// NOTE Fase 1: in-memory store. Fase 2 persists to Neon (Drizzle imports,
-// meetings, parts) with transactional confirm. IDs stay UUID.
+// --- Upload tracking & duplicate detection ---
+
+export function listUploaded(congregationId: string): UploadedFile[] {
+  return uploaded.get(congregationId) ?? [];
+}
+
+export function findDuplicate(
+  congregationId: string,
+  kind: string
+): UploadedFile | undefined {
+  const files = uploaded.get(congregationId) ?? [];
+  return files.find((f) => f.kind === kind);
+}
+
+export function registerUpload(congregationId: string, file: UploadedFile): void {
+  const files = uploaded.get(congregationId) ?? [];
+  // Replace existing of same kind
+  const idx = files.findIndex((f) => f.kind === file.kind);
+  if (idx >= 0) {
+    files[idx] = file;
+  } else {
+    files.push(file);
+  }
+  uploaded.set(congregationId, files);
+}
+
+export function removeUpload(congregationId: string, kind: string): void {
+  const files = uploaded.get(congregationId) ?? [];
+  uploaded.set(
+    congregationId,
+    files.filter((f) => f.kind !== kind)
+  );
+}
+
+export function isComplete(congregationId: string): boolean {
+  const files = uploaded.get(congregationId) ?? [];
+  const kinds = new Set(files.map((f) => f.kind));
+  // Midweek: mwb + sjj | Weekend: w + s34 + sjj
+  const hasMidweek = kinds.has("mwb") && kinds.has("sjj");
+  const hasWeekend = kinds.has("w") && kinds.has("s34") && kinds.has("sjj");
+  return hasMidweek || hasWeekend;
+}
+
+// --- Job management ---
 
 export function createJob(congregationId: string, parsed: ParsedPub): ImportJob {
   const job: ImportJob = {
     id: randomUUID(),
     congregationId,
     filename: parsed.filename,
-    kind: parsed.kind as "mwb" | "w",
+    kind: parsed.kind as ImportJob["kind"],
     estado: "preview",
     weeks: buildWeeks(parsed),
     createdAt: new Date().toISOString(),
   };
   jobs.set(job.id, job);
+  registerUpload(congregationId, {
+    filename: parsed.filename,
+    kind: job.kind,
+    jobId: job.id,
+    uploadedAt: job.createdAt,
+  });
   return job;
 }
 
 export function getJob(id: string): ImportJob | undefined {
   return jobs.get(id);
+}
+
+export function removeJob(id: string): boolean {
+  const job = jobs.get(id);
+  if (!job) return false;
+  removeUpload(job.congregationId, job.kind);
+  jobs.delete(id);
+  return true;
 }
 
 export function saveConfirmedMeetings(list: ConfirmedMeeting[]): void {
@@ -95,6 +161,83 @@ export function confirmJob(id: string, weeks?: number[]): ImportJob | undefined 
   return job;
 }
 
+// --- Merge multiple jobs into complete meetings ---
+
+export function mergeJobs(jobIds: string[]): ImportJob | undefined {
+  if (jobIds.length === 0) return undefined;
+
+  const allJobs = jobIds.map((id) => jobs.get(id)).filter(Boolean) as ImportJob[];
+  if (allJobs.length === 0) return undefined;
+
+  const congregationId = allJobs[0].congregationId;
+
+  // Separate by kind
+  const mwbJobs = allJobs.filter((j) => j.kind === "mwb");
+  const wJobs = allJobs.filter((j) => j.kind === "w");
+  const s34Jobs = allJobs.filter((j) => j.kind === "s34");
+  const sjjJobs = allJobs.filter((j) => j.kind === "sjj");
+
+  const mergedWeeks: WeekPreview[] = [];
+
+  // Build midweek meetings (mwb + sjj)
+  for (const mwbJob of mwbJobs) {
+    for (const week of mwbJob.weeks) {
+      const sjjParts = sjjJobs.flatMap((j) =>
+        j.weeks.flatMap((w) => w.parts)
+      );
+      mergedWeeks.push({
+        ...week,
+        parts: [...week.parts, ...sjjParts],
+      });
+    }
+  }
+
+  // Build weekend meetings (w + s34 + sjj)
+  for (const wJob of wJobs) {
+    for (const week of wJob.weeks) {
+      const s34Parts = s34Jobs.flatMap((j) =>
+        j.weeks.flatMap((w) => w.parts)
+      );
+      const sjjParts = sjjJobs.flatMap((j) =>
+        j.weeks.flatMap((w) => w.parts)
+      );
+      mergedWeeks.push({
+        ...week,
+        parts: [...week.parts, ...s34Parts, ...sjjParts],
+      });
+    }
+  }
+
+  // If only sjj uploaded alone, create placeholder weeks
+  if (mwbJobs.length === 0 && wJobs.length === 0 && sjjJobs.length > 0) {
+    for (const sjjJob of sjjJobs) {
+      for (const week of sjjJob.weeks) {
+        mergedWeeks.push(week);
+      }
+    }
+  }
+
+  // Sort by date
+  mergedWeeks.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+
+  // Reindex
+  mergedWeeks.forEach((w, i) => { w.index = i; });
+
+  const merged: ImportJob = {
+    id: randomUUID(),
+    congregationId,
+    filename: allJobs.map((j) => j.filename).join(", "),
+    kind: allJobs[0].kind,
+    estado: "preview",
+    weeks: mergedWeeks,
+    createdAt: new Date().toISOString(),
+  };
+  jobs.set(merged.id, merged);
+  return merged;
+}
+
+// --- Build weeks from parsed data ---
+
 function toSalaA(p: PartDraft): PartDraft & { sala: "A" } {
   return { ...p, sala: "A" };
 }
@@ -114,6 +257,27 @@ function buildWeeks(parsed: ParsedPub): WeekPreview[] {
         parts: mapWatchtowerToParts(row).map(toSalaA),
       };
     }
+    if (parsed.kind === "s34") {
+      const fecha = String(row.s34_date ?? row.date ?? "").replaceAll("/", "-");
+      return {
+        index,
+        fecha,
+        tipo: "fin_semana",
+        semanaLabel: String(row.s34_date_locale ?? fecha ?? `S-34 ${index + 1}`),
+        parts: mapS34ToParts(row).map(toSalaA),
+      };
+    }
+    if (parsed.kind === "sjj") {
+      const fecha = String(row.sjj_date ?? row.date ?? "").replaceAll("/", "-");
+      return {
+        index,
+        fecha,
+        tipo: "entre_semana",
+        semanaLabel: String(row.sjj_date_locale ?? fecha ?? `Cánticos ${index + 1}`),
+        parts: mapSjjToParts(row).map(toSalaA),
+      };
+    }
+    // mwb
     const fecha = String(row.mwb_week_date ?? "").replaceAll("/", "-");
     return {
       index,
