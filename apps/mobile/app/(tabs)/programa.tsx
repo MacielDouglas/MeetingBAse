@@ -1,19 +1,41 @@
-import { ScrollView, Text, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+// Programa (Fase 3): lee del SQLite via usePrograma (offline-first).
+// Reuniones expandibles con parts, titular y warnings. Publicar exige online.
+// Sala siempre A, sin selector. iOS + Android (sin nativos nuevos).
+
+import { useState } from "react";
+import { Button, ScrollView, Text, View } from "react-native";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
-import { CONGREGATION_ID, getMeetings } from "../../lib/api";
+import {
+  CONGREGATION_ID,
+  isNetworkError,
+  publishMeeting,
+} from "../../lib/api";
+import { usePrograma } from "../../hooks/usePrograma";
 
-// Programa (Fase 2A): lee GET /meetings via TanStack Query.
-// Sala siempre A, sin selector. Sin conexion muestra aviso offline.
-// Funciona igual en iOS y Android (solo fetch, sin nativos).
+function estadoLabel(estado: string): string {
+  return estado === "published" ? es["Publicado"] : es["Borrador"];
+}
+
 export default function Programa() {
-  const query = useQuery({
-    queryKey: ["meetings", CONGREGATION_ID],
-    queryFn: () => getMeetings(CONGREGATION_ID),
-    retry: 1,
-  });
+  const { meetings, offline, lastSync, isPending, isError, error, refetch, isFetching } =
+    usePrograma();
+  const client = useQueryClient();
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [publishMsg, setPublishMsg] = useState<string | null>(null);
 
-  const meetings = query.data?.meetings ?? [];
+  const pub = useMutation({
+    mutationFn: (meetingId: string) => publishMeeting(CONGREGATION_ID, meetingId),
+    onSuccess: async () => {
+      setPublishMsg(null);
+      await client.invalidateQueries({ queryKey: ["programa", CONGREGATION_ID] });
+    },
+    onError: (e) => {
+      setPublishMsg(
+        isNetworkError(e) ? es["Necesitas conexión para asignar"] : (e as Error).message
+      );
+    },
+  });
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
@@ -22,32 +44,82 @@ export default function Programa() {
         {es["Sala fija"]}: {es["Sala A"]}
       </Text>
 
-      {query.isPending ? <Text>{es["Cargando programa..."]}</Text> : null}
-
-      {query.isError ? (
+      <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+        <Button
+          title={isFetching ? es["Sincronizando..."] : es["Sincronizar"]}
+          onPress={() => {
+            setPublishMsg(null);
+            refetch();
+          }}
+          disabled={isFetching}
+        />
+      </View>
+      {offline ? <Text>{es["Sin conexión"]}</Text> : null}
+      {lastSync && !offline ? (
         <Text>
-          {es["Necesitas conexión para asignar"]}
+          {es["Sincronizado"]}: {lastSync}
         </Text>
       ) : null}
 
-      {!query.isPending && !query.isError && meetings.length === 0 ? (
+      {isPending ? <Text>{es["Cargando programa..."]}</Text> : null}
+      {isError && meetings.length === 0 ? (
+        <Text>
+          {(error as Error)?.message ?? es["Error al cargar el programa"]}
+        </Text>
+      ) : null}
+      {!isPending && meetings.length === 0 ? (
         <Text>{es["Sin reuniones todavía"]}</Text>
       ) : null}
+      {publishMsg ? <Text>{publishMsg}</Text> : null}
 
-      {meetings.map((m) => (
-        <View
-          key={m.id}
-          style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: "#ddd" }}
-        >
-          <Text style={{ fontWeight: "bold" }}>
-            {m.semana_label ? `${m.semana_label} · ` : ""}
-            {m.fecha}
-          </Text>
-          <Text>
-            {m.tipo} · {es["Sala A"]} · {m.parts_count} {es["partes"]}
-          </Text>
-        </View>
-      ))}
+      {meetings.map((m) => {
+        const open = expanded === m.id;
+        return (
+          <View
+            key={m.id}
+            style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: "#ddd", gap: 4 }}
+          >
+            <Text style={{ fontWeight: "bold" }}>
+              {m.semana_label ? `${m.semana_label} · ` : ""}
+              {m.fecha}
+            </Text>
+            <Text>
+              {m.tipo} · {es["Sala A"]} · {m.parts.length} {es["partes"]} ·{" "}
+              {estadoLabel(m.estado)}
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button
+                title={open ? es["Ocultar partes"] : es["Ver partes"]}
+                onPress={() => setExpanded(open ? null : m.id)}
+              />
+              {m.estado !== "published" ? (
+                <Button
+                  title={pub.isPending ? es["Publicando..."] : es["Publicar"]}
+                  onPress={() => pub.mutate(m.id)}
+                  disabled={pub.isPending || offline}
+                />
+              ) : null}
+            </View>
+            {open
+              ? m.parts.map((p) => (
+                  <View key={p.id} style={{ paddingLeft: 12, paddingVertical: 4, gap: 2 }}>
+                    <Text>
+                      {p.orden}. {p.titulo}
+                    </Text>
+                    <Text>
+                      {es["Titular"]}:{" "}
+                      {p.titular_id ? p.titular_id.slice(0, 8) : es["Sin asignar"]}
+                      {p.ayudante_id ? ` · ${es["Ayudante"]}: ${p.ayudante_id.slice(0, 8)}` : ""}
+                    </Text>
+                    {p.warnings.map((w) => (
+                      <Text key={w.id}>⚠ {w.mensaje_es}</Text>
+                    ))}
+                  </View>
+                ))
+              : null}
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }
