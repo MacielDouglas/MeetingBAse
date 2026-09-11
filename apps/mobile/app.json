@@ -1,0 +1,11 @@
+{
+  "name": "meeting-base",
+  "slug": "meeting-base",
+  "version": "0.1.0",
+  "scheme": "meeting-base",
+  "platforms": ["ios", "android"],
+  "plugins": ["expo-router"],
+  "experiments": {
+    "typedRoutes": false
+  }
+}

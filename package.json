@@ -1,0 +1,13 @@
+{
+  "name": "meeting-base",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/mobile",
+    "apps/api",
+    "packages/db"
+  ],
+  "scripts": {
+    "fase0:check": "echo Fase 0 — ver estructura base"
+  }
+}
