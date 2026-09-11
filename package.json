@@ -9,5 +9,8 @@
   ],
   "scripts": {
     "fase0:check": "echo Fase 0 — ver estructura base"
+  },
+  "overrides": {
+    "react": "19.2.3"
   }
 }
