@@ -26,6 +26,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/sql.js": "^1.4.11",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }

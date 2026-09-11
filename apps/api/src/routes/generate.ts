@@ -10,8 +10,9 @@ import {
   type TemplateVars,
   type TemplateRepeat,
 } from "../lib/templateEngine.js";
-import { listConfirmedMeetings } from "../lib/importStore.js";
+import { listConfirmedMeetings, getSongCatalog, getTalkCatalog } from "../lib/importStore.js";
 import { listSpeakers } from "../lib/speakersStore.js";
+import { getAssignmentsWithNames } from "../lib/repoAssign.js";
 import { fileURLToPath } from "node:url";
 
 const TEMPLATES_DIR = join(
@@ -64,13 +65,16 @@ export async function generateRoutes(app: FastifyInstance) {
       const meetings = listConfirmedMeetings(params.data.id);
       const meeting = meetings.find((m) => m.id === body.data.meeting_id);
       if (meeting) {
-        vars = { ...vars, ...meetingToVars(meeting as unknown as Record<string, unknown>) };
+        const songs = getSongCatalog(params.data.id);
+        const talks = getTalkCatalog(params.data.id);
+        const assigns = await getAssignmentsWithNames(params.data.id, meeting.id);
+        vars = { ...vars, ...meetingToVars(meeting as unknown as Record<string, unknown>, songs, talks, assigns) };
       }
     }
 
     // Add speakers for speaker templates
     if (template.id === "pt-speakers") {
-      const speakers = listSpeakers(params.data.id);
+      const speakers = await listSpeakers(params.data.id);
       repeats.push({
         key: "speakers",
         rows: speakers.map((s) => ({

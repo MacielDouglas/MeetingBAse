@@ -331,3 +331,42 @@ export async function fetchNeonSyncData(
     return null;
   }
 }
+
+// Fetch assignments with publisher names for a meeting (for template generation).
+export async function getAssignmentsWithNames(
+  congregationId: string,
+  meetingId: string
+): Promise<{ part_id: string; titular_name: string; ayudante_name?: string }[]> {
+  if (!isDbConfigured()) return [];
+  try {
+    const db = getDb();
+    if (!db) return [];
+    const aRows = await db
+      .select()
+      .from(assignments)
+      .where(
+        and(
+          eq(assignments.congregationId, congregationId),
+          eq(assignments.meetingId, meetingId),
+        )
+      );
+    const result: { part_id: string; titular_name: string; ayudante_name?: string }[] = [];
+    for (const a of aRows) {
+      const titRows = await db.select().from(publishers).where(eq(publishers.id, a.titularId));
+      const titName = titRows[0]?.nombre ?? "";
+      let ayuName: string | undefined;
+      if (a.ayudanteId) {
+        const ayuRows = await db.select().from(publishers).where(eq(publishers.id, a.ayudanteId));
+        ayuName = ayuRows[0]?.nombre;
+      }
+      result.push({
+        part_id: a.partId,
+        titular_name: titName,
+        ayudante_name: ayuName,
+      });
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}

@@ -26,20 +26,19 @@ const updateBody = z.object({
 });
 
 export async function publishersRoutes(app: FastifyInstance) {
-  // Seed on startup
   seedPublishers("00000000-0000-0000-0000-000000000000");
 
   app.get("/c/:id/publishers", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
-    const pubs = listPublishers(params.data.id);
+    const pubs = await listPublishers(params.data.id);
     return { publishers: pubs };
   });
 
   app.get("/c/:id/publishers/:pid", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
-    const pub = getPublisher(params.data.id, (req.params as { pid: string }).pid);
+    const pub = await getPublisher(params.data.id, (req.params as { pid: string }).pid);
     if (!pub) return reply.code(404).send({ error: "Publicador no encontrado" });
     return { publisher: pub };
   });
@@ -51,7 +50,7 @@ export async function publishersRoutes(app: FastifyInstance) {
     if (!body.success) {
       return reply.code(400).send({ error: body.error.issues[0].message });
     }
-    const pub = createPublisher(params.data.id, body.data);
+    const pub = await createPublisher(params.data.id, body.data);
     return reply.code(201).send({ publisher: pub });
   });
 
@@ -62,7 +61,7 @@ export async function publishersRoutes(app: FastifyInstance) {
     if (!body.success) {
       return reply.code(400).send({ error: body.error.issues[0].message });
     }
-    const pub = updatePublisher(params.data.id, (req.params as { pid: string }).pid, body.data);
+    const pub = await updatePublisher(params.data.id, (req.params as { pid: string }).pid, body.data);
     if (!pub) return reply.code(404).send({ error: "Publicador no encontrado" });
     return { publisher: pub };
   });
@@ -70,7 +69,7 @@ export async function publishersRoutes(app: FastifyInstance) {
   app.delete("/c/:id/publishers/:pid", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
-    const ok = deletePublisher(params.data.id, (req.params as { pid: string }).pid);
+    const ok = await deletePublisher(params.data.id, (req.params as { pid: string }).pid);
     if (!ok) return reply.code(404).send({ error: "Publicador no encontrado" });
     return { ok: true };
   });

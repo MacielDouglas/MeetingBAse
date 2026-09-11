@@ -2,14 +2,13 @@ import { randomUUID } from "node:crypto";
 import {
   mapMwbToParts,
   mapWatchtowerToParts,
-  mapS34ToParts,
-  mapSjjToParts,
   type PartDraft,
 } from "../../../../packages/db/mapping.js";
 import type { ParsedPub } from "./parsePub.js";
 
 // Multi-file import model. Each .jwpub upload creates a job.
 // Jobs can be merged into complete meetings (midweek + weekend).
+// sjj (songs) and S-34 (talks) are stored as catalogs, not weeks.
 
 export interface WeekPreview {
   index: number;
@@ -54,9 +53,24 @@ export interface UploadedFile {
   uploadedAt: string;
 }
 
+// Catalog entries for sjj (songs) and S-34 (public talks)
+export interface SongCatalogEntry {
+  number: number;
+  title: string;
+}
+
+export interface TalkCatalogEntry {
+  number: number;
+  title: string;
+}
+
 const jobs = new Map<string, ImportJob>();
 const confirmed = new Map<string, ConfirmedMeeting[]>();
 const uploaded = new Map<string, UploadedFile[]>(); // congregationId -> files
+
+// Catalog stores: congregationId → entries
+const songCatalog = new Map<string, SongCatalogEntry[]>();
+const talkCatalog = new Map<string, TalkCatalogEntry[]>();
 
 // --- Upload tracking & duplicate detection ---
 
@@ -101,9 +115,46 @@ export function isComplete(congregationId: string): boolean {
   return hasMidweek || hasWeekend;
 }
 
+// --- Catalog accessors (sjj → songs, s34 → talks) ---
+
+export function getSongCatalog(congregationId: string): SongCatalogEntry[] {
+  return songCatalog.get(congregationId) ?? [];
+}
+
+export function getTalkCatalog(congregationId: string): TalkCatalogEntry[] {
+  return talkCatalog.get(congregationId) ?? [];
+}
+
+function storeSongCatalog(congregationId: string, rows: Record<string, string | number | undefined>[]): void {
+  const entries: SongCatalogEntry[] = rows
+    .map((r) => ({
+      number: typeof r.sjj_number === "number" ? r.sjj_number : typeof r.number === "number" ? r.number : 0,
+      title: String(r.sjj_title ?? r.title ?? ""),
+    }))
+    .filter((e) => e.number > 0 && e.title);
+  songCatalog.set(congregationId, entries);
+}
+
+function storeTalkCatalog(congregationId: string, rows: Record<string, string | number | undefined>[]): void {
+  const entries: TalkCatalogEntry[] = rows
+    .map((r) => ({
+      number: typeof r.s34_number === "number" ? r.s34_number : typeof r.number === "number" ? r.number : 0,
+      title: String(r.s34_title ?? r.title ?? ""),
+    }))
+    .filter((e) => e.title);
+  talkCatalog.set(congregationId, entries);
+}
+
 // --- Job management ---
 
 export function createJob(congregationId: string, parsed: ParsedPub): ImportJob {
+  // sjj and S-34 are catalogs, not weeks — store separately
+  if (parsed.kind === "sjj") {
+    storeSongCatalog(congregationId, parsed.rows);
+  } else if (parsed.kind === "s34") {
+    storeTalkCatalog(congregationId, parsed.rows);
+  }
+
   const job: ImportJob = {
     id: randomUUID(),
     congregationId,
@@ -171,49 +222,23 @@ export function mergeJobs(jobIds: string[]): ImportJob | undefined {
 
   const congregationId = allJobs[0].congregationId;
 
-  // Separate by kind
+  // Separate by kind — sjj and s34 are catalogs, not schedulable
   const mwbJobs = allJobs.filter((j) => j.kind === "mwb");
   const wJobs = allJobs.filter((j) => j.kind === "w");
-  const s34Jobs = allJobs.filter((j) => j.kind === "s34");
-  const sjjJobs = allJobs.filter((j) => j.kind === "sjj");
 
   const mergedWeeks: WeekPreview[] = [];
 
-  // Build midweek meetings (mwb + sjj)
+  // MWB weeks stay as-is (songs already resolved from sjj catalog via mapMwbToParts)
   for (const mwbJob of mwbJobs) {
     for (const week of mwbJob.weeks) {
-      const sjjParts = sjjJobs.flatMap((j) =>
-        j.weeks.flatMap((w) => w.parts)
-      );
-      mergedWeeks.push({
-        ...week,
-        parts: [...week.parts, ...sjjParts],
-      });
+      mergedWeeks.push({ ...week });
     }
   }
 
-  // Build weekend meetings (w + s34 + sjj)
+  // W weeks stay as-is (public talk placeholder is kept)
   for (const wJob of wJobs) {
     for (const week of wJob.weeks) {
-      const s34Parts = s34Jobs.flatMap((j) =>
-        j.weeks.flatMap((w) => w.parts)
-      );
-      const sjjParts = sjjJobs.flatMap((j) =>
-        j.weeks.flatMap((w) => w.parts)
-      );
-      mergedWeeks.push({
-        ...week,
-        parts: [...week.parts, ...s34Parts, ...sjjParts],
-      });
-    }
-  }
-
-  // If only sjj uploaded alone, create placeholder weeks
-  if (mwbJobs.length === 0 && wJobs.length === 0 && sjjJobs.length > 0) {
-    for (const sjjJob of sjjJobs) {
-      for (const week of sjjJob.weeks) {
-        mergedWeeks.push(week);
-      }
+      mergedWeeks.push({ ...week });
     }
   }
 
@@ -243,6 +268,11 @@ function toSalaA(p: PartDraft): PartDraft & { sala: "A" } {
 }
 
 function buildWeeks(parsed: ParsedPub): WeekPreview[] {
+  // sjj and S-34 are catalogs — no weeks to create
+  if (parsed.kind === "sjj" || parsed.kind === "s34") {
+    return [];
+  }
+
   return parsed.rows.map((row, index) => {
     if (parsed.kind === "w") {
       const fecha = String(row.w_study_date ?? "").replaceAll("/", "-");
@@ -255,26 +285,6 @@ function buildWeeks(parsed: ParsedPub): WeekPreview[] {
         cancionInicial: numOrUndef(row.w_study_opening_song),
         cancionFinal: numOrUndef(row.w_study_concluding_song),
         parts: mapWatchtowerToParts(row).map(toSalaA),
-      };
-    }
-    if (parsed.kind === "s34") {
-      const fecha = String(row.s34_date ?? row.date ?? "").replaceAll("/", "-");
-      return {
-        index,
-        fecha,
-        tipo: "fin_semana",
-        semanaLabel: String(row.s34_date_locale ?? fecha ?? `S-34 ${index + 1}`),
-        parts: mapS34ToParts(row).map(toSalaA),
-      };
-    }
-    if (parsed.kind === "sjj") {
-      const fecha = String(row.sjj_date ?? row.date ?? "").replaceAll("/", "-");
-      return {
-        index,
-        fecha,
-        tipo: "entre_semana",
-        semanaLabel: String(row.sjj_date_locale ?? fecha ?? `Cánticos ${index + 1}`),
-        parts: mapSjjToParts(row).map(toSalaA),
       };
     }
     // mwb

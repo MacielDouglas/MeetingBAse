@@ -46,6 +46,7 @@ export interface ListedMeeting {
   semana_label: string | null;
   estado: string;
   sala: "A";
+  updated_at: string;
   parts_count: number;
   parts: {
     id: string;
@@ -130,6 +131,16 @@ export async function saveConfirm(
   }
 }
 
+function iso(v: unknown): string {
+  try {
+    const d = v instanceof Date ? v : new Date(String(v));
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  } catch {
+    // cai para string abaixo
+  }
+  return typeof v === "string" ? v : new Date().toISOString();
+}
+
 // Lista meetings + parts por congregacion, ordenado por fecha.
 // Filtro app-level obligatorio (RLS aun comentado en SQL).
 export async function listMeetings(
@@ -160,6 +171,7 @@ export async function listMeetings(
         semana_label: m.semanaLabel,
         estado: m.estado,
         sala: "A",
+        updated_at: iso(m.updatedAt),
         parts_count: ps.length,
         parts: ps.map((p) => ({
           id: p.id,

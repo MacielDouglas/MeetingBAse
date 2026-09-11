@@ -45,11 +45,11 @@ export function upsertMemPublisher(p: MemPublisher): MemPublisher {
   return p;
 }
 
-export function getMemPublisher(id: string, congId?: string): MemPublisher | undefined {
+export async function getMemPublisher(id: string, congId?: string): Promise<MemPublisher | undefined> {
   const mem = publishers.get(id);
   if (mem) return mem;
   if (congId) {
-    const pubs = listPublishers(congId);
+    const pubs = await listPublishers(congId);
     const found = pubs.find((p) => p.id === id);
     if (found) {
       const memPub: MemPublisher = {
@@ -219,6 +219,7 @@ export function publishMemMeeting(
 // Mesmo formato do GET 2A (contrato preservado, só troca id legível
 // `${mid}#${orden}` por UUID real da part).
 export function listMemDetailed(congregationId: string): ListedMeeting[] {
+  const now = new Date().toISOString();
   return listConfirmedMeetings(congregationId).map((m) => ({
     id: m.id,
     congregation_id: m.congregation_id,
@@ -228,6 +229,7 @@ export function listMemDetailed(congregationId: string): ListedMeeting[] {
     semana_label: m.semana_label ?? null,
     estado: m.estado,
     sala: "A" as const,
+    updated_at: now,
     parts_count: m.parts.length,
     parts: m.parts.map((x) => ({
       id: x.id,

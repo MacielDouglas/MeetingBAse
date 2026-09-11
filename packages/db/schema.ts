@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   nombre: text("nombre").notNull(),
   rol: text("rol").notNull().default("publicador"),
+  passwordHash: text("password_hash").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -46,6 +47,7 @@ export const meetings = pgTable("meetings", {
   semanaLabel: text("semana_label"),
   estado: text("estado").default("draft").notNull(),
   version: integer("version").default(1).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({ uq_meeting: uniqueIndex("uq_meeting").on(t.congregationId, t.fecha, t.tipo) }));
 
 export const parts = pgTable("parts", {
@@ -95,3 +97,27 @@ export const imports = pgTable("imports", {
   createdBy: uuid("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({ idx_imports_cong: index("idx_imports_cong").on(t.congregationId) }));
+
+// Fase 5 — speakers (falantes públicos) + visits (visitantes).
+export const speakers = pgTable("speakers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  congregationId: uuid("congregation_id").notNull(),
+  nombre: text("nombre").notNull(),
+  telefono: text("telefono"),
+  celular: text("celular"),
+  email: text("email"),
+  talkNumbers: integer("talk_numbers").array().default([]).notNull(),
+  activo: boolean("activo").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({ idx_speakers_cong: index("idx_speakers_cong").on(t.congregationId, t.activo) }));
+
+export const visits = pgTable("visits", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  congregationId: uuid("congregation_id").notNull(),
+  speakerId: uuid("speaker_id").notNull(),
+  fecha: date("fecha").notNull(),
+  talkNumber: integer("talk_number"),
+  notas: text("notas"),
+  estado: text("estado").default("pendiente").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({ idx_visits_cong: index("idx_visits_cong").on(t.congregationId, t.fecha) }));

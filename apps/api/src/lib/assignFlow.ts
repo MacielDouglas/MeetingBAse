@@ -79,19 +79,19 @@ async function bundleNeon(
   };
 }
 
-function bundleMem(
+async function bundleMem(
   congId: string,
   partId: string,
   titularId: string,
   ayudanteId: string | null
-): Bundle | null {
+): Promise<Bundle | null> {
   const hit = findMemPart(congId, partId);
   if (!hit) return null;
-  const tit = getMemPublisher(titularId, congId);
+  const tit = await getMemPublisher(titularId, congId);
   if (!tit) return null;
   let ayu: PublisherRef | null = null;
   if (ayudanteId) {
-    ayu = getMemPublisher(ayudanteId, congId) ?? null;
+    ayu = await getMemPublisher(ayudanteId, congId) ?? null;
     if (!ayu) return null;
   }
   return {
@@ -137,7 +137,7 @@ export async function assignPart(
 ): Promise<FlowReply> {
   let b: Bundle | null = null;
   if (isDbConfigured()) b = await bundleNeon(congId, partId, titularId, ayudanteId);
-  if (!b) b = bundleMem(congId, partId, titularId, ayudanteId);
+  if (!b) b = await bundleMem(congId, partId, titularId, ayudanteId);
   if (!b) {
     // Mensagem mais específica: parte? titular? ajudante?
     const partOk =
@@ -147,7 +147,7 @@ export async function assignPart(
       return { status: 404, body: { error: "Parte no encontrada" } };
     const titOk =
       (isDbConfigured() && (await getNeonPublisher(titularId))) ||
-      getMemPublisher(titularId, congId);
+      (await getMemPublisher(titularId, congId));
     if (!titOk)
       return { status: 404, body: { error: "Titular no encontrado" } };
     return { status: 404, body: { error: "Ayudante no encontrado" } };
@@ -276,17 +276,35 @@ export function buildSyncPayload(
   persistencia: "neon" | "memoria"
 ) {
   const t = sinceTime(sinceRaw);
+
+  // Filter meetings by updatedAt (incremental sync)
+  const keepM =
+    t === null
+      ? meetings
+      : meetings.filter((m) => {
+          const mt = Date.parse(m.updated_at);
+          return Number.isNaN(mt) || mt >= t;
+        });
+  const meetingIds = new Set(keepM.map((m) => m.id));
+
   const keepA =
     t === null
       ? assignments
-      : assignments.filter((a) => Number.isNaN(Date.parse(a.updated_at)) || Date.parse(a.updated_at) >= t);
+      : assignments.filter((a) => {
+          const at = Date.parse(a.updated_at);
+          return Number.isNaN(at) || at >= t;
+        });
   const keepW =
     t === null
       ? warnings
-      : warnings.filter((w) => Number.isNaN(Date.parse(w.created_at)) || Date.parse(w.created_at) >= t);
+      : warnings.filter((w) => {
+          const wt = Date.parse(w.created_at);
+          return Number.isNaN(wt) || wt >= t;
+        });
+
   return {
     since: sinceRaw,
-    meetings: meetings.map((m) => ({
+    meetings: keepM.map((m) => ({
       id: m.id,
       congregation_id: m.congregation_id,
       import_id: m.import_id,
@@ -295,8 +313,9 @@ export function buildSyncPayload(
       semana_label: m.semana_label,
       estado: m.estado,
       sala: m.sala,
+      updated_at: m.updated_at,
     })),
-    parts: meetings.flatMap((m) =>
+    parts: keepM.flatMap((m) =>
       m.parts.map((p) => ({
         id: p.id,
         meeting_id: m.id,
@@ -309,11 +328,9 @@ export function buildSyncPayload(
         needs_review: p.needs_review,
       }))
     ),
-    assignments: keepA,
-    warnings: keepW,
-    // 2B: meetings/parts sem coluna de data → sempre completos.
-    // assignments/warnings filtrados quando `since` válido.
-    filtrado: false,
+    assignments: keepA.filter((a) => meetingIds.has(a.meeting_id)),
+    warnings: keepW.filter((w) => meetingIds.has(w.meeting_id)),
+    filtrado: t !== null,
     persistencia,
   };
 }

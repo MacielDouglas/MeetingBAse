@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { and, eq } from "drizzle-orm";
+import { getDb, isDbConfigured } from "../../../../packages/db/db.js";
+import { publishers as publishersTable } from "../../../../packages/db/schema.js";
 
-// In-memory publishers store. Fallback when no DATABASE_URL.
-// TODO Fase 5: migrar para Neon (publishers table já existe no schema).
+// Fase 5 — publishers store. Neon first, in-memory fallback.
 
 export interface Publisher {
   id: string;
@@ -15,20 +17,69 @@ export interface Publisher {
   createdAt: string;
 }
 
-const publishers = new Map<string, Publisher[]>(); // congregationId -> publishers
+// In-memory fallback
+const memPublishers = new Map<string, Publisher[]>();
 
-export function listPublishers(congregationId: string): Publisher[] {
-  return (publishers.get(congregationId) ?? []).filter((p) => p.activo);
+function rowToPublisher(r: Record<string, unknown>): Publisher {
+  return {
+    id: String(r.id),
+    congregationId: String(r.congregationId),
+    nombre: String(r.nombre),
+    sexo: String(r.sexo),
+    cargo: String(r.cargo),
+    activo: Boolean(r.activo),
+    telefono: r.telefono ? String(r.telefono) : undefined,
+    userId: r.userId ? String(r.userId) : undefined,
+    createdAt: r.createdAt ? String(r.createdAt) : new Date().toISOString(),
+  };
 }
 
-export function getPublisher(congregationId: string, id: string): Publisher | undefined {
-  return (publishers.get(congregationId) ?? []).find((p) => p.id === id);
+export async function listPublishers(congregationId: string): Promise<Publisher[]> {
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        const rows = await db
+          .select()
+          .from(publishersTable)
+          .where(and(
+            eq(publishersTable.congregationId, congregationId),
+            eq(publishersTable.activo, true),
+          ));
+        return rows.map(rowToPublisher);
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+  return (memPublishers.get(congregationId) ?? []).filter((p) => p.activo);
 }
 
-export function createPublisher(
+export async function getPublisher(congregationId: string, id: string): Promise<Publisher | undefined> {
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        const rows = await db
+          .select()
+          .from(publishersTable)
+          .where(and(
+            eq(publishersTable.congregationId, congregationId),
+            eq(publishersTable.id, id),
+          ));
+        return rows[0] ? rowToPublisher(rows[0]) : undefined;
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+  return (memPublishers.get(congregationId) ?? []).find((p) => p.id === id);
+}
+
+export async function createPublisher(
   congregationId: string,
   data: { nombre: string; sexo: string; cargo?: string; telefono?: string }
-): Publisher {
+): Promise<Publisher> {
   const pub: Publisher = {
     id: randomUUID(),
     congregationId,
@@ -39,18 +90,68 @@ export function createPublisher(
     telefono: data.telefono,
     createdAt: new Date().toISOString(),
   };
-  const list = publishers.get(congregationId) ?? [];
+
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        await db.insert(publishersTable).values({
+          id: pub.id,
+          congregationId: pub.congregationId,
+          nombre: pub.nombre,
+          sexo: pub.sexo,
+          cargo: pub.cargo,
+          activo: pub.activo,
+          telefono: pub.telefono ?? null,
+        });
+        return pub;
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+
+  const list = memPublishers.get(congregationId) ?? [];
   list.push(pub);
-  publishers.set(congregationId, list);
+  memPublishers.set(congregationId, list);
   return pub;
 }
 
-export function updatePublisher(
+export async function updatePublisher(
   congregationId: string,
   id: string,
   data: Partial<{ nombre: string; sexo: string; cargo: string; telefono: string; activo: boolean }>
-): Publisher | undefined {
-  const list = publishers.get(congregationId) ?? [];
+): Promise<Publisher | undefined> {
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        const rows = await db
+          .select()
+          .from(publishersTable)
+          .where(and(
+            eq(publishersTable.congregationId, congregationId),
+            eq(publishersTable.id, id),
+          ));
+        if (!rows[0]) return undefined;
+        const sets: Record<string, unknown> = {};
+        if (data.nombre !== undefined) sets.nombre = data.nombre;
+        if (data.sexo !== undefined) sets.sexo = data.sexo;
+        if (data.cargo !== undefined) sets.cargo = data.cargo;
+        if (data.telefono !== undefined) sets.telefono = data.telefono;
+        if (data.activo !== undefined) sets.activo = data.activo;
+        if (Object.keys(sets).length > 0) {
+          await db.update(publishersTable).set(sets).where(eq(publishersTable.id, id));
+        }
+        const updated = await db.select().from(publishersTable).where(eq(publishersTable.id, id));
+        return updated[0] ? rowToPublisher(updated[0]) : undefined;
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+
+  const list = memPublishers.get(congregationId) ?? [];
   const idx = list.findIndex((p) => p.id === id);
   if (idx < 0) return undefined;
   const pub = list[idx];
@@ -63,17 +164,29 @@ export function updatePublisher(
   return pub;
 }
 
-export function deletePublisher(congregationId: string, id: string): boolean {
-  const list = publishers.get(congregationId) ?? [];
+export async function deletePublisher(congregationId: string, id: string): Promise<boolean> {
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        await db.update(publishersTable).set({ activo: false }).where(eq(publishersTable.id, id));
+        return true;
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+
+  const list = memPublishers.get(congregationId) ?? [];
   const idx = list.findIndex((p) => p.id === id);
   if (idx < 0) return false;
   list[idx].activo = false;
   return true;
 }
 
-// Seed dev publishers
+// Seed dev publishers (só em memória — não insere no Neon)
 export function seedPublishers(congregationId: string): void {
-  if ((publishers.get(congregationId) ?? []).length > 0) return;
+  if ((memPublishers.get(congregationId) ?? []).length > 0) return;
   const names = [
     { nombre: "Carlos Méndez", sexo: "M", cargo: "anciano" },
     { nombre: "Luis Rodríguez", sexo: "M", cargo: "siervo_ministerial" },
@@ -82,6 +195,15 @@ export function seedPublishers(congregationId: string): void {
     { nombre: "Pedro Sánchez", sexo: "M", cargo: "publicador" },
   ];
   for (const n of names) {
-    createPublisher(congregationId, n);
+    const pub: Publisher = {
+      id: randomUUID(),
+      congregationId,
+      ...n,
+      activo: true,
+      createdAt: new Date().toISOString(),
+    };
+    const list = memPublishers.get(congregationId) ?? [];
+    list.push(pub);
+    memPublishers.set(congregationId, list);
   }
 }

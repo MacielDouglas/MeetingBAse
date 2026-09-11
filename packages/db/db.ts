@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
+import { sql } from "drizzle-orm";
 import * as schema from "./schema.js";
 
 // Fase 2A — cliente Drizzle + Neon Postgres (API).
@@ -29,5 +30,19 @@ export function getDb(): NeonDb | null {
   } catch {
     cached = null;
     return null;
+  }
+}
+
+// Set RLS session variable for the current request.
+// Best-effort: Neon HTTP doesn't maintain sessions, so this may not persist.
+// App-level filtering (WHERE congregation_id = :id) is the primary protection.
+// RLS provides defense-in-depth when the variable is set.
+export async function setCongregationContext(congregationId: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`SET app.congregation_id = ${congregationId}`);
+  } catch {
+    // Best-effort: app-level filtering still provides protection.
   }
 }

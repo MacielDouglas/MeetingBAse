@@ -1,9 +1,11 @@
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
+import { getDb, isDbConfigured } from "../../../../packages/db/db.js";
+import { users } from "../../../../packages/db/schema.js";
 
-// Auth helpers: JWT + bcrypt. In-memory user store (Fase 4A).
-// TODO Fase 5: migrar para Neon (users table já existe no schema).
+// Fase 5 — Auth helpers: JWT + bcrypt. Neon first, in-memory fallback.
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "meeting-base-dev-secret-change-in-prod";
 const JWT_EXPIRES = "7d";
@@ -20,7 +22,8 @@ interface StoredUser extends AuthUser {
   passwordHash: string;
 }
 
-const users = new Map<string, StoredUser>(); // email -> user
+// In-memory fallback (quando não há DATABASE_URL)
+const memUsers = new Map<string, StoredUser>();
 
 const SALT_ROUNDS = 10;
 
@@ -63,6 +66,33 @@ export function verifyToken(token: string): AuthUser | null {
   }
 }
 
+async function findUserByEmail(email: string): Promise<StoredUser | undefined> {
+  const e = email.toLowerCase();
+  // Neon first
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        const rows = await db.select().from(users).where(eq(users.email, e));
+        const r = rows[0];
+        if (r) {
+          return {
+            id: r.id,
+            congregationId: r.congregationId,
+            email: r.email,
+            nombre: r.nombre,
+            rol: r.rol,
+            passwordHash: r.passwordHash,
+          };
+        }
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+  return memUsers.get(e);
+}
+
 export async function registerUser(
   email: string,
   password: string,
@@ -70,28 +100,51 @@ export async function registerUser(
   congregationId: string,
   rol = "publicador"
 ): Promise<AuthUser> {
-  const existing = users.get(email.toLowerCase());
+  const e = email.toLowerCase();
+  const existing = await findUserByEmail(e);
   if (existing) throw new Error("Ya existe un usuario con ese email");
 
   const id = randomUUID();
   const passwordHash = await hashPassword(password);
+
+  // Neon first
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        await db.insert(users).values({
+          id,
+          congregationId,
+          email: e,
+          nombre,
+          rol,
+          passwordHash,
+        });
+        return { id, congregationId, email: e, nombre, rol };
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+
+  // In-memory fallback
   const user: StoredUser = {
     id,
     congregationId,
-    email: email.toLowerCase(),
+    email: e,
     nombre,
     rol,
     passwordHash,
   };
-  users.set(email.toLowerCase(), user);
-  return { id, congregationId, email: user.email, nombre, rol };
+  memUsers.set(e, user);
+  return { id, congregationId, email: e, nombre, rol };
 }
 
 export async function loginUser(
   email: string,
   password: string
 ): Promise<{ user: AuthUser; token: string }> {
-  const stored = users.get(email.toLowerCase());
+  const stored = await findUserByEmail(email);
   if (!stored) throw new Error("Email o contraseña incorrectos");
 
   const valid = await comparePassword(password, stored.passwordHash);
@@ -109,15 +162,14 @@ export async function loginUser(
 
 // Seed admin for dev (congregation 00000000-...)
 export async function seedAdmin(): Promise<void> {
-  if (users.size > 0) return;
   const email = "admin@meeting-base.local";
-  if (!users.has(email)) {
-    await registerUser(
-      email,
-      "admin123",
-      "Administrador",
-      "00000000-0000-0000-0000-000000000000",
-      "admin"
-    );
-  }
+  const existing = await findUserByEmail(email);
+  if (existing) return;
+  await registerUser(
+    email,
+    "admin123",
+    "Administrador",
+    "00000000-0000-0000-0000-000000000000",
+    "admin"
+  );
 }

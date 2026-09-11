@@ -44,13 +44,13 @@ export async function speakersRoutes(app: FastifyInstance) {
   app.get("/c/:id/speakers", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
-    return { speakers: listSpeakers(params.data.id) };
+    return { speakers: await listSpeakers(params.data.id) };
   });
 
   app.get("/c/:id/speakers/:sid", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
-    const s = getSpeaker(params.data.id, (req.params as { sid: string }).sid);
+    const s = await getSpeaker(params.data.id, (req.params as { sid: string }).sid);
     if (!s) return reply.code(404).send({ error: "Falante no encontrado" });
     return { speaker: s };
   });
@@ -62,7 +62,7 @@ export async function speakersRoutes(app: FastifyInstance) {
     if (!body.success) {
       return reply.code(400).send({ error: body.error.issues[0].message });
     }
-    const s = createSpeaker(params.data.id, {
+    const s = await createSpeaker(params.data.id, {
       nombre: body.data.nombre,
       telefono: body.data.telefono,
       celular: body.data.celular,
@@ -84,7 +84,7 @@ export async function speakersRoutes(app: FastifyInstance) {
       data.talkNumbers = data.talk_numbers;
       delete data.talk_numbers;
     }
-    const s = updateSpeaker(params.data.id, (req.params as { sid: string }).sid, data as Parameters<typeof updateSpeaker>[2]);
+    const s = await updateSpeaker(params.data.id, (req.params as { sid: string }).sid, data as Parameters<typeof updateSpeaker>[2]);
     if (!s) return reply.code(404).send({ error: "Falante no encontrado" });
     return { speaker: s };
   });
@@ -92,7 +92,7 @@ export async function speakersRoutes(app: FastifyInstance) {
   app.delete("/c/:id/speakers/:sid", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
-    const ok = deleteSpeaker(params.data.id, (req.params as { sid: string }).sid);
+    const ok = await deleteSpeaker(params.data.id, (req.params as { sid: string }).sid);
     if (!ok) return reply.code(404).send({ error: "Falante no encontrado" });
     return { ok: true };
   });
@@ -102,7 +102,7 @@ export async function speakersRoutes(app: FastifyInstance) {
   app.get("/c/:id/visits", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
-    return { visits: listVisits(params.data.id) };
+    return { visits: await listVisits(params.data.id) };
   });
 
   app.post("/c/:id/visits", async (req, reply) => {
@@ -112,9 +112,9 @@ export async function speakersRoutes(app: FastifyInstance) {
     if (!body.success) {
       return reply.code(400).send({ error: body.error.issues[0].message });
     }
-    const s = getSpeaker(params.data.id, body.data.speaker_id);
+    const s = await getSpeaker(params.data.id, body.data.speaker_id);
     if (!s) return reply.code(404).send({ error: "Falante no encontrado" });
-    const v = createVisit(params.data.id, {
+    const v = await createVisit(params.data.id, {
       speakerId: body.data.speaker_id,
       fecha: body.data.fecha,
       talkNumber: body.data.talk_number,
@@ -130,7 +130,7 @@ export async function speakersRoutes(app: FastifyInstance) {
     if (!body.success) {
       return reply.code(400).send({ error: body.error.issues[0].message });
     }
-    const v = updateVisit(params.data.id, (req.params as { vid: string }).vid, body.data);
+    const v = await updateVisit(params.data.id, (req.params as { vid: string }).vid, body.data);
     if (!v) return reply.code(404).send({ error: "Visita no encontrada" });
     return { visit: v };
   });
@@ -138,7 +138,7 @@ export async function speakersRoutes(app: FastifyInstance) {
   app.delete("/c/:id/visits/:vid", async (req, reply) => {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
-    const ok = deleteVisit(params.data.id, (req.params as { vid: string }).vid);
+    const ok = await deleteVisit(params.data.id, (req.params as { vid: string }).vid);
     if (!ok) return reply.code(404).send({ error: "Visita no encontrada" });
     return { ok: true };
   });

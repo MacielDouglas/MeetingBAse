@@ -97,12 +97,38 @@ function processBlock(
   return result;
 }
 
-// Build meeting vars from a confirmed meeting
-export function meetingToVars(m: Record<string, unknown>): TemplateVars {
+// Build meeting vars from a confirmed meeting.
+// Optionally enriches with song/talk catalog data and assignment names.
+export function meetingToVars(
+  m: Record<string, unknown>,
+  songCatalog?: { number: number; title: string }[],
+  talkCatalog?: { number: number; title: string }[],
+  assignments?: { part_id: string; titular_name: string; ayudante_name?: string }[],
+): TemplateVars {
   const parts = (m.parts ?? []) as Record<string, unknown>[];
   const find = (tipo: string) => parts.find((p) => p.tipo_clave === tipo);
   const str = (v: unknown): string => (v !== undefined && v !== null ? String(v) : "");
   const num = (v: unknown): string => (v !== undefined && v !== null ? String(v) : "0");
+
+  // Helper: look up song title by number from catalog
+  const songTitle = (songNum: unknown): string => {
+    const n = typeof songNum === "number" ? songNum : typeof songNum === "string" ? parseInt(songNum, 10) : 0;
+    if (n <= 0 || !songCatalog) return `Canción ${n}`;
+    const entry = songCatalog.find((s) => s.number === n);
+    return entry ? `Canción ${n} — ${entry.title}` : `Canción ${n}`;
+  };
+
+  // Helper: look up publisher name by part_id from assignments
+  const titularName = (tipoClave: string): string => {
+    if (!assignments) return "";
+    const part = parts.find((p) => p.tipo_clave === tipoClave);
+    if (!part) return "";
+    const a = assignments.find((x) => x.part_id === part.id);
+    return a?.titular_name ?? "";
+  };
+
+  // Find the WT conductor (titular of w_estudio part)
+  const wtConductor = titularName("w_estudio");
 
   return {
     DATE: str(m.fecha),
@@ -113,30 +139,36 @@ export function meetingToVars(m: Record<string, unknown>): TemplateVars {
     LECTURA_SEMANAL: str(m.lectura_semanal),
     // Midweek sections
     GW1_THEME: str(find("mwb_tgw_talk")?.titulo),
-    GW1_SPEAKER: "",
+    GW1_SPEAKER: titularName("mwb_tgw_talk"),
     GW1_TIME: num(find("mwb_tgw_talk")?.duracion_min ?? 10),
     GW2_THEME: str(find("mwb_tgw_gems")?.titulo),
     GW2_TIME: num(find("mwb_tgw_gems")?.duracion_min ?? 10),
     GW3_THEME: str(find("mwb_tgw_bread")?.titulo),
     GW3_TIME: num(find("mwb_tgw_bread")?.duracion_min ?? 4),
     FM1_THEME: str(find("mwb_ayf_part1")?.titulo),
-    FM1_SPEAKER_A: "",
+    FM1_SPEAKER_A: titularName("mwb_ayf_part1"),
     FM2_THEME: str(find("mwb_ayf_part2")?.titulo),
+    FM2_SPEAKER_A: titularName("mwb_ayf_part2"),
     FM3_THEME: str(find("mwb_ayf_part3")?.titulo),
+    FM3_SPEAKER_A: titularName("mwb_ayf_part3"),
     FM4_THEME: str(find("mwb_ayf_part4")?.titulo),
+    FM4_SPEAKER_A: titularName("mwb_ayf_part4"),
     CL1_THEME: str(find("mwb_lc_part1")?.titulo),
+    CL1_SPEAKER_A: titularName("mwb_lc_part1"),
     CL2_THEME: str(find("mwb_lc_part2")?.titulo),
+    CL2_SPEAKER_A: titularName("mwb_lc_part2"),
     CBS_THEME: str(find("mwb_lc_cbs")?.titulo),
+    CBS_SPEAKER_A: titularName("mwb_lc_cbs"),
     // Weekend sections
     PT_THEME: str(find("discurso_publico")?.titulo),
-    PT_SPEAKER: "",
+    PT_SPEAKER: titularName("discurso_publico"),
     PT_NO: "",
     WT_THEME: str(find("w_estudio")?.titulo),
-    WT_CONDUCTOR: "",
-    // Songs
-    SONG1: str(m.cancion_inicial),
-    SONG2: str(m.cancion_intermedia),
-    SONG3: str(m.cancion_final),
+    WT_CONDUCTOR: wtConductor,
+    // Songs — enriched with catalog titles when available
+    SONG1: songTitle(m.cancion_inicial),
+    SONG2: songTitle(m.cancion_intermedia),
+    SONG3: songTitle(m.cancion_final),
   };
 }
 
