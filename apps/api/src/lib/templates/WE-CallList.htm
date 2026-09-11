@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — Lista de llamadas — !DATE!</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; font-size: 13px; }
+  h1 { color: #1a5276; font-size: 16px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+  th { background: #f5f5f5; }
+</style>
+</head>
+<body>
+<h1>!CONGREGATION_TITLE! — Lista de llamadas — !DATE!</h1>
+<table>
+<tr><th>Fecha</th><th>Falante</th><th>Discurso</th><th>Notas</th></tr>
+#REPEAT_START!visits!#
+<tr><td>!visit_fecha!</td><td>!visit_speaker!</td><td>!visit_talk!</td><td>!visit_notas!</td></tr>
+#REPEAT_END#
+</table>
+</body>
+</html>
