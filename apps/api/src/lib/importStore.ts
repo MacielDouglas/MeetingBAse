@@ -32,7 +32,20 @@ export interface ImportJob {
   confirmedAt?: string;
 }
 
+export interface ConfirmedMeeting {
+  id: string;
+  congregation_id: string;
+  import_id: string;
+  fecha: string;
+  tipo: string;
+  semana_label?: string | null;
+  estado: string;
+  sala: "A";
+  parts: (PartDraft & { sala: "A" })[];
+}
+
 const jobs = new Map<string, ImportJob>();
+const confirmed = new Map<string, ConfirmedMeeting[]>();
 
 // NOTE Fase 1: in-memory store. Fase 2 persists to Neon (Drizzle imports,
 // meetings, parts) with transactional confirm. IDs stay UUID.
@@ -53,6 +66,20 @@ export function createJob(congregationId: string, parsed: ParsedPub): ImportJob 
 
 export function getJob(id: string): ImportJob | undefined {
   return jobs.get(id);
+}
+
+export function saveConfirmedMeetings(list: ConfirmedMeeting[]): void {
+  for (const m of list) {
+    const arr = confirmed.get(m.congregation_id) ?? [];
+    if (!arr.some((x) => x.id === m.id)) arr.push(m);
+    confirmed.set(m.congregation_id, arr);
+  }
+}
+
+export function listConfirmedMeetings(congregationId: string): ConfirmedMeeting[] {
+  return (confirmed.get(congregationId) ?? []).slice().sort((a, b) =>
+    a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0
+  );
 }
 
 export function confirmJob(id: string, weeks?: number[]): ImportJob | undefined {

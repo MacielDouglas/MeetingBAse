@@ -24,5 +24,9 @@
   "Error al subir el archivo": "Error al subir el archivo",
   "Error al confirmar": "Error al confirmar",
   "Archivo seleccionado": "Archivo seleccionado",
-  "Sala fija": "Sala fija"
+  "Sala fija": "Sala fija",
+  "Cargando programa...": "Cargando programa...",
+  "Sin reuniones todavía": "Sin reuniones todavía",
+  "partes": "partes",
+  "Error al cargar el programa": "Error al cargar el programa"
 }

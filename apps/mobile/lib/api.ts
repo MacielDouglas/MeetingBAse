@@ -75,6 +75,35 @@ export async function confirmImport(jobId: string, weeks?: number[]): Promise<Co
   return body as ConfirmResult;
 }
 
+export interface MeetingPartItem {
+  id: string;
+  orden: number;
+  titulo: string;
+  sala: string;
+}
+
+export interface MeetingListItem {
+  id: string;
+  fecha: string;
+  tipo: string;
+  semana_label?: string | null;
+  estado: string;
+  sala: string;
+  parts_count: number;
+  parts: MeetingPartItem[];
+}
+
+export interface MeetingsResult {
+  meetings: MeetingListItem[];
+  persistencia?: "neon" | "memoria";
+}
+
+export async function getMeetings(congregationId = CONGREGATION_ID): Promise<MeetingsResult> {
+  const res = await fetch(`${API_URL}/c/${congregationId}/meetings`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(toErrorMessage(body, "Error al cargar el programa"));
+  return body as MeetingsResult;
+}
 export function isNetworkError(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
   return /network|fetch|conexi|connection|failed/i.test(msg);

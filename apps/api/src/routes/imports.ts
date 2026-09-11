@@ -2,11 +2,12 @@ import type { FastifyInstance } from "fastify";
 import { createWriteStream, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pipeline } from "node:stream/promises";
-import { unlink } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { congIdParam, confirmBody, jobParam, isJwpubFilename, MAX_JWPUB_BYTES } from "../lib/validators.js";
 import { parsePubFile } from "../lib/parsePub.js";
-import { createJob, getJob, confirmJob } from "../lib/importStore.js";
+import { createJob, getJob, confirmJob, saveConfirmedMeetings } from "../lib/importStore.js";
+import { saveConfirm } from "../lib/repoNeon.js";
 
 // Fase 1: upload .jwpub -> loadPub -> preview -> confirm -> meetings draft.
 // Room always A. Neon persistence comes in Fase 2 (TODO).
@@ -14,8 +15,15 @@ import { createJob, getJob, confirmJob } from "../lib/importStore.js";
 
 const MB_TMP_DIR = "D:\\temp";
 
-function ensureTmpDir() {
-  mkdirSync(MB_TMP_DIR, { recursive: true });
+function ensureTmpDir(dir: string) {
+  mkdirSync(dir, { recursive: true });
+}
+
+// loadPub valida o basename do caminho (ex.: mwb_S_202611.jwpub).
+// Por isso o temporario preserva o nome original dentro de pasta unica.
+function safeFilename(name: string): string {
+  const base = name.split(/[\\/]/).pop() ?? "upload.jwpub";
+  return base.replace(/[^A-Za-z0-9._()-]/g, "_");
 }
 
 export async function importsRoutes(app: FastifyInstance) {
@@ -29,8 +37,9 @@ export async function importsRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Solo se aceptan archivos .jwpub" });
     }
 
-    const tmpPath = join(MB_TMP_DIR, `mb-${randomUUID()}.jwpub`);
-    ensureTmpDir();
+    const tmpDir = join(MB_TMP_DIR, `mb-${randomUUID()}`);
+    const tmpPath = join(tmpDir, safeFilename(file.filename));
+    ensureTmpDir(tmpDir);
     let bytes = 0;
     file.file.on("data", (c: Buffer) => {
       bytes += c.length;
@@ -60,7 +69,7 @@ export async function importsRoutes(app: FastifyInstance) {
       const msg = e instanceof Error ? e.message : "No se pudo procesar el archivo";
       return reply.code(422).send({ error: msg });
     } finally {
-      await unlink(tmpPath).catch(() => {});
+      await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     }
   });
 
@@ -81,7 +90,7 @@ export async function importsRoutes(app: FastifyInstance) {
     const job = confirmJob(p.data.job, body.data.weeks);
     if (!job) return reply.code(404).send({ error: "Importación no encontrada o ya confirmada" });
 
-    // Draft meetings shaped like Neon rows (persist in Fase 2).
+    // Draft meetings shaped like Neon rows (sala A fija).
     const meetings = job.weeks.map((w) => ({
       id: randomUUID(),
       congregation_id: job.congregationId,
@@ -95,9 +104,20 @@ export async function importsRoutes(app: FastifyInstance) {
       cancion_final: w.cancionFinal ?? null,
       semana_label: w.semanaLabel,
       estado: "draft",
-      sala: "A",
+      sala: "A" as const,
       parts: w.parts,
     }));
-    return reply.code(201).send({ job_id: job.id, estado: job.estado, meetings });
+    saveConfirmedMeetings(meetings);
+
+    // Fase 2A: intenta persistir en Neon; sin DB sigue en memoria.
+    let persistencia: "neon" | "memoria" = "memoria";
+    try {
+      const saved = await saveConfirm(job, meetings);
+      if (saved.ok) persistencia = "neon";
+    } catch {
+      persistencia = "memoria";
+    }
+    reply.header("x-persistencia", persistencia);
+    return reply.code(201).send({ job_id: job.id, estado: job.estado, persistencia, meetings });
   });
 }

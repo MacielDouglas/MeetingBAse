@@ -30,7 +30,7 @@ export const publishers = pgTable("publishers", {
   cargo: text("cargo").notNull().default("publicador"),
   activo: boolean("activo").default(true).notNull(),
   telefono: text("telefono"),
-}, (t) => [index("idx_pub_cong").on(t.congregationId, t.activo)]);
+}, (t) => ({ idx_pub_cong: index("idx_pub_cong").on(t.congregationId, t.activo) }));
 
 export const meetings = pgTable("meetings", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -46,7 +46,7 @@ export const meetings = pgTable("meetings", {
   semanaLabel: text("semana_label"),
   estado: text("estado").default("draft").notNull(),
   version: integer("version").default(1).notNull(),
-}, (t) => [uniqueIndex("uq_meeting").on(t.congregationId, t.fecha, t.tipo)]);
+}, (t) => ({ uq_meeting: uniqueIndex("uq_meeting").on(t.congregationId, t.fecha, t.tipo) }));
 
 export const parts = pgTable("parts", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -61,7 +61,7 @@ export const parts = pgTable("parts", {
   sala: text("sala").default("A").notNull(),
   requiereAyudante: boolean("requiere_ayudante").default(false).notNull(),
   needsReview: boolean("needs_review").default(false).notNull(),
-}, (t) => [uniqueIndex("uq_part_orden").on(t.meetingId, t.orden)]);
+}, (t) => ({ uq_part_orden: uniqueIndex("uq_part_orden").on(t.meetingId, t.orden) }));
 
 export const assignments = pgTable("assignments", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -72,7 +72,7 @@ export const assignments = pgTable("assignments", {
   ayudanteId: uuid("ayudante_id"),
   createdBy: uuid("created_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-}, (t) => [check("ck_titular_ayudante", sql`${t.titularId} != ${t.ayudanteId}`)]);
+}, (t) => ({ ck_titular_ayudante: check("ck_titular_ayudante", sql`${t.titularId} != ${t.ayudanteId}`) }));
 
 export const warnings = pgTable("assignment_warnings", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -82,7 +82,7 @@ export const warnings = pgTable("assignment_warnings", {
   mensajeEs: text("mensaje_es").notNull(),
   reconocidoPor: uuid("reconocido_por"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-}, (t) => [index("idx_warn_meeting").on(t.meetingId)]);
+}, (t) => ({ idx_warn_meeting: index("idx_warn_meeting").on(t.meetingId) }));
 
 // Fase 1 — import jobs (.jwpub upload -> preview -> confirm).
 export const imports = pgTable("imports", {
@@ -94,4 +94,4 @@ export const imports = pgTable("imports", {
   weeksCount: integer("weeks_count").default(0).notNull(),
   createdBy: uuid("created_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-}, (t) => [index("idx_imports_cong").on(t.congregationId)]);
+}, (t) => ({ idx_imports_cong: index("idx_imports_cong").on(t.congregationId) }));
