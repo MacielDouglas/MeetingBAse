@@ -9,3 +9,5 @@ web-build/
 Thumbs.db
 *.jwpub
 jwpub/
+.env
+.env.*
