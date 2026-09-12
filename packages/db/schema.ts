@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, date, uniqueIndex, index, check } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp, date, uniqueIndex, index, check, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // Fase 0 — schema Neon Postgres. Sala A fixa. Alertas suaves via assignment_warnings.
@@ -121,3 +121,12 @@ export const visits = pgTable("visits", {
   estado: text("estado").default("pendiente").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({ idx_visits_cong: index("idx_visits_cong").on(t.congregationId, t.fecha) }));
+
+// Fase 5 — catalogs (sjj songs + S-34 public talks, persistent cache)
+export const catalogs = pgTable("catalogs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  congregationId: uuid("congregation_id").notNull().references(() => congregations.id),
+  kind: text("kind").notNull(),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ catalogsCongKind: uniqueIndex("catalogs_cong_kind_idx").on(t.congregationId, t.kind) }));
