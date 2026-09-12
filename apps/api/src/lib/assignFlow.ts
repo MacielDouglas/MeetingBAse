@@ -360,7 +360,8 @@ export async function syncCongregation(congId: string, sinceRaw: string | null) 
   if (isDbConfigured()) {
     try {
       const d = await fetchNeonSyncData(congId);
-      if (d) return buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "neon");
+      if (d && d.meetings.length > 0)
+        return buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "neon");
     } catch {
       // cai para memória
     }

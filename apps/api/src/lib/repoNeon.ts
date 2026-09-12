@@ -25,6 +25,7 @@ export interface MeetingDraftIn {
   semana_label?: string | null;
   estado: string;
   parts: {
+    id?: string;
     orden: number;
     seccion: string;
     tipoClave: string;
@@ -102,7 +103,7 @@ export async function saveConfirm(
       done.push(m.id);
       for (const p of m.parts) {
         await db.insert(parts).values({
-          id: randomUUID(),
+          id: p.id ?? randomUUID(),
           meetingId: m.id,
           congregationId: m.congregation_id,
           orden: p.orden,
