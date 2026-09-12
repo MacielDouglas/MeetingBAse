@@ -5,7 +5,6 @@ import { ActivityIndicator, View } from "react-native";
 import { useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import { registerForPushNotifications, setupNotificationListeners } from "../lib/notifications";
 import "../i18n";
 
 const client = new QueryClient();
@@ -35,19 +34,23 @@ function NotificationSetup() {
   useEffect(() => {
     if (!user) return;
 
-    registerForPushNotifications();
+    let cleanup: (() => void) | undefined;
 
-    const cleanup = setupNotificationListeners(
-      (_notification) => {},
-      (response) => {
-        const data = response.notification.request.content.data;
-        if (data?.screen) {
-          router.push(data.screen as string);
+    (async () => {
+      const { registerForPushNotifications, setupNotificationListeners } = await import("../lib/notifications");
+      await registerForPushNotifications();
+      cleanup = await setupNotificationListeners(
+        (_notification) => {},
+        (response) => {
+          const data = response.notification.request.content.data;
+          if (data?.screen) {
+            router.push(data.screen as string);
+          }
         }
-      }
-    );
+      );
+    })();
 
-    return cleanup;
+    return () => { cleanup?.(); };
   }, [user, router]);
 
   return null;

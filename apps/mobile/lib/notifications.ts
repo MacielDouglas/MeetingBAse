@@ -1,41 +1,62 @@
-import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+// Notifications module: lazy-loaded to avoid Expo Go push crash (SDK 53+).
+// Push only works in development builds, not Expo Go.
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+let Notifications: typeof import("expo-notifications") | null = null;
+
+async function getNotifications() {
+  if (!Notifications) {
+    try {
+      Notifications = await import("expo-notifications");
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+    } catch {
+      return null;
+    }
+  }
+  return Notifications;
+}
 
 export async function registerForPushNotifications(): Promise<string | null> {
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  let finalStatus = existing;
+  const N = await getNotifications();
+  if (!N) return null;
 
-  if (existing !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
+  try {
+    const { status: existing } = await N.getPermissionsAsync();
+    let finalStatus = existing;
+
+    if (existing !== "granted") {
+      const { status } = await N.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") return null;
+
+    const { Platform } = await import("react-native");
+    if (Platform.OS === "android") {
+      await N.setNotificationChannelAsync("meetings", {
+        name: "Reuniones",
+        importance: N.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+      await N.setNotificationChannelAsync("assignments", {
+        name: "Designaciones",
+        importance: N.AndroidImportance.DEFAULT,
+      });
+    }
+
+    const token = await N.getExpoPushTokenAsync();
+    return token.data;
+  } catch {
+    // Expo Go: push not supported, fail silently
+    return null;
   }
-
-  if (finalStatus !== "granted") return null;
-
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("meetings", {
-      name: "Reuniones",
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-    });
-    await Notifications.setNotificationChannelAsync("assignments", {
-      name: "Designaciones",
-      importance: Notifications.AndroidImportance.DEFAULT,
-    });
-  }
-
-  const token = await Notifications.getExpoPushTokenAsync();
-  return token.data;
 }
 
 export async function scheduleLocalNotification(
@@ -44,7 +65,10 @@ export async function scheduleLocalNotification(
   delay?: number,
   channelId?: string
 ) {
-  await Notifications.scheduleNotificationAsync({
+  const N = await getNotifications();
+  if (!N) return;
+
+  await N.scheduleNotificationAsync({
     content: {
       title,
       body,
@@ -52,7 +76,7 @@ export async function scheduleLocalNotification(
       ...(channelId ? { channelId } : {}),
     },
     trigger: delay
-      ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: delay }
+      ? { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: delay }
       : null,
   });
 }
@@ -62,6 +86,9 @@ export async function scheduleMeetingReminder(
   semanaLabel: string | null,
   daysBefore: number = 1
 ) {
+  const N = await getNotifications();
+  if (!N) return;
+
   const date = new Date(meetingDate + "T09:00:00");
   date.setDate(date.getDate() - daysBefore);
   const now = new Date();
@@ -73,7 +100,8 @@ export async function scheduleMeetingReminder(
     ? `Reunión programada: ${semanaLabel}`
     : "Reunión programada para mañana";
 
-  await Notifications.scheduleNotificationAsync({
+  const { Platform } = await import("react-native");
+  await N.scheduleNotificationAsync({
     content: {
       title,
       body,
@@ -81,7 +109,7 @@ export async function scheduleMeetingReminder(
       ...(Platform.OS === "android" ? { channelId: "meetings" } : {}),
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      type: N.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: secondsUntil,
     },
   });
@@ -92,6 +120,9 @@ export async function scheduleAssignmentReminder(
   meetingDate: string,
   hoursBefore: number = 2
 ) {
+  const N = await getNotifications();
+  if (!N) return;
+
   const date = new Date(meetingDate + "T18:00:00");
   date.setHours(date.getHours() - hoursBefore);
   const now = new Date();
@@ -99,7 +130,8 @@ export async function scheduleAssignmentReminder(
 
   const secondsUntil = Math.floor((date.getTime() - now.getTime()) / 1000);
 
-  await Notifications.scheduleNotificationAsync({
+  const { Platform } = await import("react-native");
+  await N.scheduleNotificationAsync({
     content: {
       title: "Designación pendiente",
       body: `Prepárate para: ${partTitle}`,
@@ -107,22 +139,27 @@ export async function scheduleAssignmentReminder(
       ...(Platform.OS === "android" ? { channelId: "assignments" } : {}),
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      type: N.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: secondsUntil,
     },
   });
 }
 
 export async function cancelAllNotifications() {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  const N = await getNotifications();
+  if (!N) return;
+  await N.cancelAllScheduledNotificationsAsync();
 }
 
-export function setupNotificationListeners(
-  onReceive: (notification: Notifications.Notification) => void,
-  onTapped: (response: Notifications.NotificationResponse) => void
-) {
-  const sub1 = Notifications.addNotificationReceivedListener(onReceive);
-  const sub2 = Notifications.addNotificationResponseReceivedListener(onTapped);
+export async function setupNotificationListeners(
+  onReceive: (notification: { request: { content: { data?: Record<string, unknown> } } }) => void,
+  onTapped: (response: { notification: { request: { content: { data?: Record<string, unknown> } } } }) => void
+): Promise<() => void> {
+  const N = await getNotifications();
+  if (!N) return () => {};
+
+  const sub1 = N.addNotificationReceivedListener(onReceive as (n: import("expo-notifications").Notification) => void);
+  const sub2 = N.addNotificationResponseReceivedListener(onTapped as (r: import("expo-notifications").NotificationResponse) => void);
   return () => {
     sub1.remove();
     sub2.remove();
