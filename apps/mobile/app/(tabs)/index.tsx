@@ -1,8 +1,8 @@
 import { Text, View, StyleSheet, Pressable, Alert } from "react-native";
-import { useTranslation } from "react-i18next";
 import { usePrograma } from "../../hooks/usePrograma";
 import { useAuth } from "../../lib/auth";
 import { getCongregationId } from "../../lib/auth";
+import es from "../../i18n/es.json";
 
 function formatDate(d: string): string {
   try {
@@ -17,7 +17,6 @@ function formatDate(d: string): string {
 }
 
 export default function Inicio() {
-  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const congId = user ? getCongregationId(user) : null;
   const { meetings, offline, lastSync, isPending } = usePrograma(congId);
@@ -27,7 +26,7 @@ export default function Inicio() {
   );
 
   function handleLogout() {
-    Alert.alert(t("Cerrar sesión"), "¿Está seguro?", [
+    Alert.alert(es["Cerrar sesión"], "¿Está seguro?", [
       { text: "Cancelar" },
       { text: "Salir", onPress: () => logout(), style: "destructive" },
     ]);
@@ -36,9 +35,9 @@ export default function Inicio() {
   return (
     <View style={s.container}>
       <View style={s.header}>
-        <Text style={s.title}>{t("Inicio")}</Text>
+        <Text style={s.title}>{es["Inicio"]}</Text>
         <Pressable onPress={handleLogout} style={s.logoutBtn}>
-          <Text style={s.logoutText}>{t("Cerrar sesión")}</Text>
+          <Text style={s.logoutText}>{es["Cerrar sesión"]}</Text>
         </Pressable>
       </View>
 
@@ -51,9 +50,9 @@ export default function Inicio() {
       ) : null}
 
       <View style={s.card}>
-        <Text style={s.label}>{t("Estado")}</Text>
+        <Text style={s.label}>{es["Estado"]}</Text>
         <Text style={s.value}>
-          {offline ? t("Sin conexión") : "Conectado"}
+          {offline ? es["Sin conexión"] : "Conectado"}
         </Text>
         {lastSync ? (
           <Text style={s.sub}>Última sincronización: {lastSync}</Text>

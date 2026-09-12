@@ -5,7 +5,6 @@ import { ActivityIndicator, View } from "react-native";
 import { useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import "../i18n";
 
 const client = new QueryClient();
 
@@ -37,17 +36,25 @@ function NotificationSetup() {
     let cleanup: (() => void) | undefined;
 
     (async () => {
-      const { registerForPushNotifications, setupNotificationListeners } = await import("../lib/notifications");
-      await registerForPushNotifications();
-      cleanup = await setupNotificationListeners(
-        (_notification) => {},
-        (response) => {
-          const data = response.notification.request.content.data;
-          if (data?.screen) {
-            router.push(data.screen as string);
+      try {
+        const Constants = await import("expo-constants");
+        const executionEnv = Constants.default?.executionEnvironment;
+        if (executionEnv === "storeClient") return;
+
+        const { registerForPushNotifications, setupNotificationListeners } = await import("../lib/notifications");
+        await registerForPushNotifications();
+        cleanup = await setupNotificationListeners(
+          (_notification) => {},
+          (response) => {
+            const data = response.notification.request.content.data;
+            if (data?.screen) {
+              router.push(data.screen as string);
+            }
           }
-        }
-      );
+        );
+      } catch {
+        // Expo Go or error — skip notifications
+      }
     })();
 
     return () => { cleanup?.(); };

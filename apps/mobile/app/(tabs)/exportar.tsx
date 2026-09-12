@@ -7,12 +7,11 @@ import * as FileSystem from "expo-file-system/legacy";
 import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
 import { API_URL, isNetworkError } from "../../lib/api";
 import { SkeletonRow } from "../../components/Skeleton";
-import { useTranslation } from "react-i18next";
+import es from "../../i18n/es.json";
 
 interface Template { id: string; name: string; description: string; }
 
 export default function ExportarScreen() {
-  const { t } = useTranslation();
   const { user, token } = useAuth();
   const congId = getCongregationId(user);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
@@ -88,14 +87,14 @@ export default function ExportarScreen() {
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{t("Exportar")}</Text>
+      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Exportar"]}</Text>
       <Text style={{ color: "#666" }}>Seleccione un template para generar el documento</Text>
 
       {templates.isLoading ? <SkeletonRow lines={3} /> : null}
 
       {templates.isError ? (
         <Text style={{ color: "#e74c3c", textAlign: "center" }}>
-          {isNetworkError(templates.error) ? t("Sin conexión") : "Error al cargar templates"}
+          {isNetworkError(templates.error) ? es["Sin conexión"] : "Error al cargar templates"}
         </Text>
       ) : null}
 
@@ -118,7 +117,7 @@ export default function ExportarScreen() {
 
       {htmlContent ? (
         <View style={{ gap: 8 }}>
-          <Text style={{ fontWeight: "bold" }}>{t("Documento generado")}</Text>
+          <Text style={{ fontWeight: "bold" }}>{es["Documento generado"]}</Text>
           <Button title="Compartir" onPress={handleShare} />
           <Button title="Imprimir" onPress={handlePrint} />
           <Button title="Exportar PDF" onPress={handlePrintToPdf} />

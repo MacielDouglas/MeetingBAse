@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Text, View, StyleSheet, TextInput, Pressable, Alert, ScrollView } from "react-native";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "../../lib/auth";
 import { updateProfile } from "../../lib/api";
+import es from "../../i18n/es.json";
 
 export default function ProfileScreen() {
-  const { t } = useTranslation();
   const { user } = useAuth();
   const [nombre, setNombre] = useState(user?.nombre ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
@@ -39,7 +38,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={s.container}>
-      <Text style={s.title}>{t("Nombre")}</Text>
+      <Text style={s.title}>{es["Nombre"]}</Text>
       <TextInput
         value={nombre}
         onChangeText={setNombre}
@@ -47,7 +46,7 @@ export default function ProfileScreen() {
         autoCapitalize="words"
       />
 
-      <Text style={s.title}>{t("Email")}</Text>
+      <Text style={s.title}>{es["Email"]}</Text>
       <TextInput
         value={email}
         onChangeText={setEmail}
