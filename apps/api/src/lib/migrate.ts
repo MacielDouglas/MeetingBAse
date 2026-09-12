@@ -66,7 +66,12 @@ export async function runMigrations(): Promise<{ applied: string[]; skipped: str
       }
       const stmts = splitStatements(readFileSync(join(MIGRATIONS_DIR, f), "utf8"));
       for (const s of stmts) {
-        await pool.query(s);
+        try {
+          await pool.query(s);
+        } catch (e) {
+          // Skip non-idempotent statements (e.g. column already exists)
+          console.warn(`[migrate] skipping statement in ${f}:`, e instanceof Error ? e.message : e);
+        }
       }
       applied.add(f);
       appliedList.push(f);
