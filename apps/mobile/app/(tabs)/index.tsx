@@ -1,7 +1,6 @@
-// Tab Inicio: resumen de la próxima reunión, estado de conexión y acciones rápidas.
-
-import { Text, View, StyleSheet } from "react-native";
+import { Text, View, StyleSheet, Pressable, Alert } from "react-native";
 import { usePrograma } from "../../hooks/usePrograma";
+import { useAuth } from "../../lib/auth";
 import es from "../../i18n/es.json";
 
 function formatDate(d: string): string {
@@ -18,14 +17,35 @@ function formatDate(d: string): string {
 
 export default function Inicio() {
   const { meetings, offline, lastSync, isPending } = usePrograma();
+  const { user, logout } = useAuth();
 
   const next = meetings.find(
     (m) => new Date(m.fecha + "T12:00:00") >= new Date()
   );
 
+  function handleLogout() {
+    Alert.alert("Cerrar sesión", "¿Está seguro?", [
+      { text: "Cancelar" },
+      { text: "Salir", onPress: () => logout(), style: "destructive" },
+    ]);
+  }
+
   return (
     <View style={s.container}>
-      <Text style={s.title}>{es["Inicio"]}</Text>
+      <View style={s.header}>
+        <Text style={s.title}>{es["Inicio"]}</Text>
+        <Pressable onPress={handleLogout} style={s.logoutBtn}>
+          <Text style={s.logoutText}>Salir</Text>
+        </Pressable>
+      </View>
+
+      {user ? (
+        <View style={s.card}>
+          <Text style={s.label}>Sesión</Text>
+          <Text style={s.value}>{user.nombre}</Text>
+          <Text style={s.sub}>{user.email}</Text>
+        </View>
+      ) : null}
 
       <View style={s.card}>
         <Text style={s.label}>Estado</Text>
@@ -65,7 +85,10 @@ export default function Inicio() {
 
 const s = StyleSheet.create({
   container: { flex: 1, padding: 16, gap: 12 },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 4 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  title: { fontSize: 22, fontWeight: "bold" },
+  logoutBtn: { backgroundColor: "#e74c3c", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6 },
+  logoutText: { color: "#fff", fontWeight: "600" },
   card: {
     backgroundColor: "#f5f5f5",
     borderRadius: 10,

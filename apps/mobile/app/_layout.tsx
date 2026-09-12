@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "../lib/auth";
 import { ActivityIndicator, View } from "react-native";
 import { useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 const client = new QueryClient();
 
@@ -48,13 +49,14 @@ function AppContent() {
   );
 }
 
-// Layout raíz: QueryClient + Auth + Guard.
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={client}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={client}>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

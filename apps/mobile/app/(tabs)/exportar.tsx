@@ -4,14 +4,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
 import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
-import { API_URL } from "../../lib/api";
+import { API_URL, isNetworkError } from "../../lib/api";
+import { SkeletonRow } from "../../components/Skeleton";
 import es from "../../i18n/es.json";
 
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-}
+interface Template { id: string; name: string; description: string; }
 
 export default function ExportarScreen() {
   const { user, token } = useAuth();
@@ -21,9 +18,7 @@ export default function ExportarScreen() {
   const templates = useQuery({
     queryKey: ["templates", congId],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/c/${congId}/templates`, {
-        headers: authHeaders(token),
-      });
+      const res = await fetch(`${API_URL}/c/${congId}/templates`, { headers: authHeaders(token) });
       const body = await res.json();
       return (body.templates ?? []) as Template[];
     },
@@ -36,17 +31,13 @@ export default function ExportarScreen() {
         headers: { "Content-Type": "application/json", ...authHeaders(token) },
         body: JSON.stringify({ template_id: templateId }),
       });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error ?? "Error al generar");
-      }
+      if (!res.ok) { const body = await res.json(); throw new Error(body.error ?? "Error al generar"); }
       return res.text();
     },
-    onSuccess: (html) => {
-      setHtmlContent(html);
-    },
+    onSuccess: (html) => { setHtmlContent(html); },
     onError: (e) => {
-      Alert.alert("Error", (e as Error).message);
+      const msg = isNetworkError(e) ? "Sin conexión. Intente más tarde." : (e as Error).message;
+      Alert.alert("Error", msg);
     },
   });
 
@@ -54,14 +45,9 @@ export default function ExportarScreen() {
     if (!htmlContent) return;
     try {
       const fileUri = `${FileSystem.cacheDirectory}meeting-base-export.html`;
-      await FileSystem.writeAsStringAsync(fileUri, htmlContent, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-      await Sharing.shareAsync(fileUri, {
-        mimeType: "text/html",
-        dialogTitle: "Compartir programa",
-      });
-    } catch (e) {
+      await FileSystem.writeAsStringAsync(fileUri, htmlContent, { encoding: FileSystem.EncodingType.UTF8 });
+      await Sharing.shareAsync(fileUri, { mimeType: "text/html", dialogTitle: "Compartir programa" });
+    } catch {
       Alert.alert("Error", "No se pudo compartir");
     }
   }
@@ -71,28 +57,22 @@ export default function ExportarScreen() {
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>Exportar programa</Text>
       <Text style={{ color: "#666" }}>Seleccione un template para generar el documento</Text>
 
-      {templates.isLoading ? <Text>Cargando templates...</Text> : null}
+      {templates.isLoading ? <SkeletonRow lines={3} /> : null}
+
+      {templates.isError ? (
+        <Text style={{ color: "#e74c3c", textAlign: "center" }}>
+          {isNetworkError(templates.error) ? "Sin conexión" : "Error al cargar templates"}
+        </Text>
+      ) : null}
 
       <FlatList
         data={templates.data ?? []}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View
-            style={{
-              padding: 12,
-              borderBottomWidth: 1,
-              borderColor: "#eee",
-            }}
-          >
+          <View style={{ padding: 12, borderBottomWidth: 1, borderColor: "#eee" }}>
             <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
-            <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
-              {item.description}
-            </Text>
-            <Button
-              title={generate.isPending ? "Generando..." : "Generar"}
-              onPress={() => generate.mutate(item.id)}
-              disabled={generate.isPending}
-            />
+            <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>{item.description}</Text>
+            <Button title={generate.isPending ? "Generando..." : "Generar"} onPress={() => generate.mutate(item.id)} disabled={generate.isPending} />
           </View>
         )}
       />
@@ -101,11 +81,7 @@ export default function ExportarScreen() {
         <View style={{ gap: 8 }}>
           <Text style={{ fontWeight: "bold" }}>Documento generado</Text>
           <Button title="Compartir" onPress={handleShare} />
-          <Button
-            title="Cerrar vista previa"
-            onPress={() => setHtmlContent(null)}
-            color="#888"
-          />
+          <Button title="Cerrar vista previa" onPress={() => setHtmlContent(null)} color="#888" />
         </View>
       ) : null}
     </View>

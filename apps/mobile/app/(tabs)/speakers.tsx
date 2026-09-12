@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Button, FlatList, Text, TextInput, View, Alert } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
-import { API_URL } from "../../lib/api";
-import es from "../../i18n/es.json";
+import { API_URL, isNetworkError } from "../../lib/api";
+import { SearchBar } from "../../components/SearchBar";
+import { SkeletonRow } from "../../components/Skeleton";
 
 interface Speaker {
   id: string;
@@ -23,6 +24,7 @@ export default function SpeakersScreen() {
   const [telefono, setTelefono] = useState("");
   const [celular, setCelular] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
 
   const speakers = useQuery({
     queryKey: ["speakers", congId],
@@ -53,6 +55,10 @@ export default function SpeakersScreen() {
       setCelular("");
       setShowForm(false);
     },
+    onError: (e) => {
+      const msg = isNetworkError(e) ? "Sin conexión. Intente más tarde." : (e as Error).message;
+      Alert.alert("Error", msg);
+    },
   });
 
   const del = useMutation({
@@ -66,6 +72,10 @@ export default function SpeakersScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["speakers", congId] });
     },
+    onError: (e) => {
+      const msg = isNetworkError(e) ? "Sin conexión. Intente más tarde." : (e as Error).message;
+      Alert.alert("Error", msg);
+    },
   });
 
   function handleCreate() {
@@ -73,68 +83,43 @@ export default function SpeakersScreen() {
       Alert.alert("Error", "Nombre requerido");
       return;
     }
-    create.mutate({
-      nombre: nombre.trim(),
-      telefono: telefono || undefined,
-      celular: celular || undefined,
-    });
+    create.mutate({ nombre: nombre.trim(), telefono: telefono || undefined, celular: celular || undefined });
   }
+
+  const filtered = (speakers.data ?? []).filter(
+    (s) => !search || s.nombre.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>Falantes públicos</Text>
 
-      <Button
-        title={showForm ? "Cancelar" : "+ Nuevo falante"}
-        onPress={() => setShowForm(!showForm)}
-      />
+      <Button title={showForm ? "Cancelar" : "+ Nuevo falante"} onPress={() => setShowForm(!showForm)} />
 
       {showForm && (
         <View style={{ gap: 8, padding: 12, backgroundColor: "#f5f5f5", borderRadius: 8 }}>
-          <TextInput
-            placeholder="Nombre"
-            value={nombre}
-            onChangeText={setNombre}
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
-          />
-          <TextInput
-            placeholder="Teléfono"
-            value={telefono}
-            onChangeText={setTelefono}
-            keyboardType="phone-pad"
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
-          />
-          <TextInput
-            placeholder="Celular"
-            value={celular}
-            onChangeText={setCelular}
-            keyboardType="phone-pad"
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
-          />
-          <Button
-            title={create.isPending ? "Creando..." : "Crear falante"}
-            onPress={handleCreate}
-            disabled={create.isPending}
-          />
+          <TextInput placeholder="Nombre" value={nombre} onChangeText={setNombre} style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }} />
+          <TextInput placeholder="Teléfono" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad" style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }} />
+          <TextInput placeholder="Celular" value={celular} onChangeText={setCelular} keyboardType="phone-pad" style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }} />
+          <Button title={create.isPending ? "Creando..." : "Crear falante"} onPress={handleCreate} disabled={create.isPending} />
         </View>
       )}
 
-      {speakers.isLoading ? <Text>Cargando...</Text> : null}
+      <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar falante..." />
+
+      {speakers.isLoading ? <SkeletonRow lines={4} /> : null}
+
+      {speakers.isError ? (
+        <Text style={{ color: "#e74c3c", textAlign: "center" }}>
+          {isNetworkError(speakers.error) ? "Sin conexión" : "Error al cargar"}
+        </Text>
+      ) : null}
 
       <FlatList
-        data={speakers.data ?? []}
+        data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View
-            style={{
-              padding: 12,
-              borderBottomWidth: 1,
-              borderColor: "#eee",
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <View style={{ padding: 12, borderBottomWidth: 1, borderColor: "#eee", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "bold" }}>{item.nombre}</Text>
               <Text style={{ fontSize: 12, color: "#666" }}>
@@ -142,15 +127,12 @@ export default function SpeakersScreen() {
                 {item.talkNumbers.length > 0 ? ` · Discursos: ${item.talkNumbers.join(", ")}` : ""}
               </Text>
             </View>
-            <Button
-              title="X"
-              onPress={() => {
-                Alert.alert("Eliminar", `¿Eliminar ${item.nombre}?`, [
-                  { text: "Cancelar" },
-                  { text: "Eliminar", onPress: () => del.mutate(item.id) },
-                ]);
-              }}
-            />
+            <Button title="X" onPress={() => {
+              Alert.alert("Eliminar", `¿Eliminar ${item.nombre}?`, [
+                { text: "Cancelar" },
+                { text: "Eliminar", onPress: () => del.mutate(item.id) },
+              ]);
+            }} />
           </View>
         )}
       />

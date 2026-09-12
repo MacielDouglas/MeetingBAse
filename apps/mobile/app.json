@@ -8,7 +8,14 @@
     "expo-router",
     "expo-sqlite",
     "expo-secure-store",
-    "expo-sharing"
+    "expo-sharing",
+    [
+      "expo-notifications",
+      {
+        "icon": "./assets/adaptive-icon.png",
+        "color": "#ffffff"
+      }
+    ]
   ],
   "experiments": {
     "typedRoutes": false
