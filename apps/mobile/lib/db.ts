@@ -126,8 +126,12 @@ export async function saveSyncPayload(
   const now = new Date().toISOString();
   const d = getDb();
   d.withTransactionSync(() => {
-    d.runSync("DELETE FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?)", congregationId);
-    d.runSync("DELETE FROM meetings WHERE congregation_id = ?", congregationId);
+    // Only DELETE all meetings if this is a full sync (not filtered/incremental).
+    // Incremental syncs use UPSERT to avoid losing existing data.
+    if (!payload.filtrado) {
+      d.runSync("DELETE FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?)", congregationId);
+      d.runSync("DELETE FROM meetings WHERE congregation_id = ?", congregationId);
+    }
     for (const m of payload.meetings ?? []) {
       d.runSync(
         "INSERT OR REPLACE INTO meetings (id, congregation_id, import_id, fecha, tipo, semana_label, estado, sala) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
