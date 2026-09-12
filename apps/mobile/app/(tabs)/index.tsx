@@ -1,6 +1,7 @@
 import { Text, View, StyleSheet, Pressable, Alert } from "react-native";
 import { usePrograma } from "../../hooks/usePrograma";
 import { useAuth } from "../../lib/auth";
+import { getCongregationId } from "../../lib/auth";
 import es from "../../i18n/es.json";
 
 function formatDate(d: string): string {
@@ -16,8 +17,9 @@ function formatDate(d: string): string {
 }
 
 export default function Inicio() {
-  const { meetings, offline, lastSync, isPending } = usePrograma();
   const { user, logout } = useAuth();
+  const congId = user ? getCongregationId(user) : null;
+  const { meetings, offline, lastSync, isPending } = usePrograma(congId);
 
   const next = meetings.find(
     (m) => new Date(m.fecha + "T12:00:00") >= new Date()

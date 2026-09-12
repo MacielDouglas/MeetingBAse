@@ -24,7 +24,7 @@ interface Publisher {
 export default function Asignar() {
   const { user, token } = useAuth();
   const congId = getCongregationId(user);
-  const { meetings, offline } = usePrograma();
+  const { meetings, offline } = usePrograma(congId);
   const client = useQueryClient();
   const [meetingId, setMeetingId] = useState<string | null>(null);
   const [partId, setPartId] = useState<string | null>(null);

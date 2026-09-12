@@ -4,11 +4,7 @@
 // Funciona igual en iOS y Android (expo-sqlite + fetch).
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import {
-  getCongregationId,
-  getSync,
-  isNetworkError,
-} from "../lib/api";
+import { getSync, isNetworkError } from "../lib/api";
 import {
   getLastSince,
   initDb,
@@ -23,9 +19,8 @@ export interface ProgramaData {
   lastSync: string | null;
 }
 
-async function fetchPrograma(): Promise<ProgramaData> {
+async function fetchPrograma(congId: string): Promise<ProgramaData> {
   await initDb();
-  const congId = getCongregationId();
   const since = await getLastSince(congId);
   try {
     const payload = await getSync(congId, since ?? undefined);
@@ -49,10 +44,11 @@ export interface ProgramaHook extends Omit<UseQueryResult<ProgramaData, Error>, 
   data: ProgramaData | undefined;
 }
 
-export function usePrograma(): ProgramaHook {
+export function usePrograma(congId: string | null): ProgramaHook {
   const q = useQuery<ProgramaData, Error>({
-    queryKey: ["programa", getCongregationId()],
-    queryFn: fetchPrograma,
+    queryKey: ["programa", congId],
+    queryFn: () => fetchPrograma(congId!),
+    enabled: !!congId,
     retry: 1,
     staleTime: 30_000,
   });

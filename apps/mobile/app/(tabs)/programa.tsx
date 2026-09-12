@@ -5,30 +5,37 @@
 import { useState } from "react";
 import { Button, ScrollView, Text, View } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import es from "../../i18n/es.json";
-import {
-  getCongregationId,
-  isNetworkError,
-  publishMeeting,
-} from "../../lib/api";
+import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
+import { API_URL, isNetworkError } from "../../lib/api";
 import { usePrograma } from "../../hooks/usePrograma";
+import es from "../../i18n/es.json";
 
 function estadoLabel(estado: string): string {
   return estado === "published" ? es["Publicado"] : es["Borrador"];
 }
 
 export default function Programa() {
+  const { user, token } = useAuth();
+  const congId = user ? getCongregationId(user) : null;
   const { meetings, offline, lastSync, isPending, isError, error, refetch, isFetching } =
-    usePrograma();
+    usePrograma(congId);
   const client = useQueryClient();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
 
   const pub = useMutation({
-    mutationFn: (meetingId: string) => publishMeeting(getCongregationId(), meetingId),
+    mutationFn: async (meetingId: string) => {
+      const res = await fetch(`${API_URL}/c/${congId}/meetings/${meetingId}/publish`, {
+        method: "POST",
+        headers: authHeaders(token),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Error al publicar");
+      return body;
+    },
     onSuccess: async () => {
       setPublishMsg(null);
-      await client.invalidateQueries({ queryKey: ["programa", getCongregationId()] });
+      await client.invalidateQueries({ queryKey: ["programa", congId] });
     },
     onError: (e) => {
       setPublishMsg(
