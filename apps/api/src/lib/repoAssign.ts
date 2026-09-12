@@ -203,6 +203,11 @@ export async function saveNeonAssignment(input: {
           updatedAt: new Date(),
         },
       });
+    // Update meeting's updatedAt to trigger incremental sync
+    await db
+      .update(meetings)
+      .set({ updatedAt: new Date() })
+      .where(eq(meetings.id, input.meetingId));
     // Troca warnings de (meeting, publisher) — ver limitação em docs.
     await db
       .delete(warnings)
@@ -275,7 +280,7 @@ export async function publishNeonMeeting(
     if (m.estado === "published") return "already";
     await db
       .update(meetings)
-      .set({ estado: "published" })
+      .set({ estado: "published", updatedAt: new Date() })
       .where(eq(meetings.id, mid));
     return "ok";
   } catch {

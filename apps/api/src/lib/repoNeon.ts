@@ -97,6 +97,7 @@ export async function saveConfirm(
         cancionFinal: m.cancion_final ?? null,
         semanaLabel: m.semana_label ?? null,
         estado: "draft",
+        updatedAt: new Date(),
       });
       done.push(m.id);
       for (const p of m.parts) {

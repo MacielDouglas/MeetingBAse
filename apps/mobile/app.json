@@ -1,12 +1,9 @@
 {
-  "name": "meeting-base",
+  "name": "Meeting Base",
   "slug": "meeting-base",
   "version": "0.1.0",
   "scheme": "meeting-base",
-  "platforms": [
-    "ios",
-    "android"
-  ],
+  "platforms": ["ios", "android"],
   "plugins": [
     "expo-router",
     "expo-sqlite",
@@ -15,5 +12,22 @@
   ],
   "experiments": {
     "typedRoutes": false
+  },
+  "ios": {
+    "bundleIdentifier": "com.meetingbase.app",
+    "supportsTablet": true
+  },
+  "android": {
+    "package": "com.meetingbase.app",
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/adaptive-icon.png",
+      "backgroundColor": "#ffffff"
+    },
+    "edgeToEdgeEnabled": true
+  },
+  "extra": {
+    "eas": {
+      "projectId": ""
+    }
   }
 }
