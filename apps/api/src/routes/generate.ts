@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 
 const TEMPLATES_DIR = join(
   fileURLToPath(new URL(".", import.meta.url)),
+  "..",
+  "lib",
   "templates"
 );
 

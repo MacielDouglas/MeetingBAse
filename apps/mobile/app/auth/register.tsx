@@ -3,22 +3,26 @@ import { Button, Text, TextInput, View, Alert, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
+  const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [congregationId, setCongregationId] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { register } = useAuth();
   const router = useRouter();
 
-  async function handleLogin() {
-    if (!email || !password) {
-      Alert.alert("Error", "Email y contraseña requeridos");
+  async function handleRegister() {
+    if (!nombre || !email || !password || !congregationId) {
+      Alert.alert("Error", "Todos los campos son requeridos");
       return;
     }
     setLoading(true);
     try {
-      await login(email, password);
-      router.replace("/(tabs)");
+      await register({ email, password, nombre, congregation_id: congregationId });
+      Alert.alert("Éxito", "Cuenta creada. Ahora inicie sesión.", [
+        { text: "OK", onPress: () => router.replace("/auth/login") },
+      ]);
     } catch (e) {
       Alert.alert("Error", (e as Error).message);
     } finally {
@@ -32,8 +36,22 @@ export default function LoginScreen() {
         Meeting Base
       </Text>
       <Text style={{ textAlign: "center", color: "#666" }}>
-        Inicie sesión para continuar
+        Crear una cuenta nueva
       </Text>
+
+      <TextInput
+        placeholder="Nombre"
+        value={nombre}
+        onChangeText={setNombre}
+        autoCapitalize="words"
+        style={{
+          borderWidth: 1,
+          borderColor: "#ccc",
+          borderRadius: 8,
+          padding: 12,
+          fontSize: 16,
+        }}
+      />
 
       <TextInput
         placeholder="Email"
@@ -64,14 +82,28 @@ export default function LoginScreen() {
         }}
       />
 
+      <TextInput
+        placeholder="ID de congregación (UUID)"
+        value={congregationId}
+        onChangeText={setCongregationId}
+        autoCapitalize="none"
+        style={{
+          borderWidth: 1,
+          borderColor: "#ccc",
+          borderRadius: 8,
+          padding: 12,
+          fontSize: 16,
+        }}
+      />
+
       <Button
-        title={loading ? "Iniciando..." : "Iniciar sesión"}
-        onPress={handleLogin}
+        title={loading ? "Creando cuenta..." : "Registrarse"}
+        onPress={handleRegister}
         disabled={loading}
       />
 
-      <Pressable onPress={() => router.replace("/auth/register")} style={{ alignItems: "center" }}>
-        <Text style={{ color: "#007AFF" }}>¿No tiene cuenta? Regístrese</Text>
+      <Pressable onPress={() => router.replace("/auth/login")} style={{ alignItems: "center" }}>
+        <Text style={{ color: "#007AFF" }}>¿Ya tiene cuenta? Inicie sesión</Text>
       </Pressable>
     </View>
   );
