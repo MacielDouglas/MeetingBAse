@@ -5,7 +5,7 @@
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
-  CONGREGATION_ID,
+  getCongregationId,
   getSync,
   isNetworkError,
 } from "../lib/api";
@@ -25,16 +25,17 @@ export interface ProgramaData {
 
 async function fetchPrograma(): Promise<ProgramaData> {
   await initDb();
-  const since = await getLastSince(CONGREGATION_ID);
+  const congId = getCongregationId();
+  const since = await getLastSince(congId);
   try {
-    const payload = await getSync(CONGREGATION_ID, since ?? undefined);
-    const lastSync = await saveSyncPayload(CONGREGATION_ID, payload);
-    const meetings = await loadPrograma(CONGREGATION_ID);
+    const payload = await getSync(congId, since ?? undefined);
+    const lastSync = await saveSyncPayload(congId, payload);
+    const meetings = await loadPrograma(congId);
     return { meetings, offline: false, lastSync };
   } catch (e) {
     if (isNetworkError(e)) {
-      const meetings = await loadPrograma(CONGREGATION_ID);
-      const last = await getLastSince(CONGREGATION_ID);
+      const meetings = await loadPrograma(congId);
+      const last = await getLastSince(congId);
       return { meetings, offline: true, lastSync: last };
     }
     throw e;
@@ -50,7 +51,7 @@ export interface ProgramaHook extends Omit<UseQueryResult<ProgramaData, Error>, 
 
 export function usePrograma(): ProgramaHook {
   const q = useQuery<ProgramaData, Error>({
-    queryKey: ["programa", CONGREGATION_ID],
+    queryKey: ["programa", getCongregationId()],
     queryFn: fetchPrograma,
     retry: 1,
     staleTime: 30_000,

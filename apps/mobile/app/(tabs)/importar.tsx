@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
 import {
   API_URL,
-  CONGREGATION_ID,
+  getCongregationId,
   confirmImport,
   deleteImport,
   getUploadedFiles,
@@ -34,13 +34,13 @@ export default function Importar() {
   const queryClient = useQueryClient();
 
   const uploaded = useQuery({
-    queryKey: ["uploadedFiles", CONGREGATION_ID],
-    queryFn: () => getUploadedFiles(CONGREGATION_ID),
+    queryKey: ["uploadedFiles", getCongregationId()],
+    queryFn: () => getUploadedFiles(getCongregationId()),
   });
 
   const upload = useMutation({
     mutationFn: async (input: { uri?: string; name?: string; file?: File }) => {
-      if (input.file) return uploadJwpubFile(input.file);
+      if (input.file) return uploadJwpubFile(input.file, "application/octet-stream", getCongregationId());
       return uploadJwpub(input.uri ?? "", input.name ?? "archivo.jwpub");
     },
     onSuccess: (data) => {
@@ -56,7 +56,7 @@ export default function Importar() {
   });
 
   const merge = useMutation({
-    mutationFn: (jobIds: string[]) => mergeImports(jobIds, CONGREGATION_ID),
+    mutationFn: (jobIds: string[]) => mergeImports(jobIds, getCongregationId()),
     onSuccess: (data) => {
       setPreview(data);
       setResult(null);
@@ -67,7 +67,7 @@ export default function Importar() {
   });
 
   const del = useMutation({
-    mutationFn: (jobId: string) => deleteImport(jobId, CONGREGATION_ID),
+    mutationFn: (jobId: string) => deleteImport(jobId, getCongregationId()),
     onSuccess: () => {
       uploaded.refetch();
       setPreview(null);

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
-import { API_URL, CONGREGATION_ID } from "./api";
+import { API_URL, setCongregationId } from "./api";
 
 const TOKEN_KEY = "mb_auth_token";
 const USER_KEY = "mb_auth_user";
@@ -40,8 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const savedToken = await SecureStore.getItemAsync(TOKEN_KEY);
         const savedUser = await SecureStore.getItemAsync(USER_KEY);
         if (savedToken && savedUser) {
+          const user = JSON.parse(savedUser);
           setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          setUser(user);
+          if (user.congregationId) setCongregationId(user.congregationId);
         }
       } catch {}
       setIsLoading(false);
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await SecureStore.setItemAsync(USER_KEY, JSON.stringify(body.user));
     setToken(body.token);
     setUser(body.user);
+    setCongregationId(body.user.congregationId);
   };
 
   const logout = async () => {
@@ -67,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await SecureStore.deleteItemAsync(USER_KEY);
     setToken(null);
     setUser(null);
+    setCongregationId("");
   };
 
   return (
@@ -86,7 +90,8 @@ export function authHeaders(token: string | null): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
-// Helper: get congregation ID from auth or fallback
+// Helper: get congregation ID from auth (required — no fallback)
 export function getCongregationId(user: AuthUser | null): string {
-  return user?.congregationId ?? CONGREGATION_ID;
+  if (!user?.congregationId) throw new Error("No hay sesión activa. Inicie sesión primero.");
+  return user.congregationId;
 }

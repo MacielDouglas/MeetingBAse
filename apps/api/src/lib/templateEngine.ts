@@ -21,13 +21,25 @@ export function renderTemplate(
 
   // Process conditionals: #IF !VAR!#...#ELSE#...#ENDIF# or #IF !VAR!#...#ENDIF#
   result = result.replace(
-    /#IF\s+!(\w+)!\s*#([\s\S]*?)(?:#ELSE#([\s\S]*?))?#ENDIF#/g,
+    /#IF\s+!(\w+)!\s*#([\s\S]*?)#ELSE#([\s\S]*?)#ENDIF#/g,
     (_, key: string, ifBlock: string, elseBlock: string) => {
       const val = vars[key];
       if (val && val !== "" && val !== "0" && val !== "false") {
         return processBlock(ifBlock, vars, repeats);
       }
-      return elseBlock ? processBlock(elseBlock, vars, repeats) : "";
+      return processBlock(elseBlock, vars, repeats);
+    }
+  );
+
+  // Process conditionals without ELSE: #IF !VAR!#...#ENDIF#
+  result = result.replace(
+    /#IF\s+!(\w+)!\s*#([\s\S]*?)#ENDIF#/g,
+    (_, key: string, ifBlock: string) => {
+      const val = vars[key];
+      if (val && val !== "" && val !== "0" && val !== "false") {
+        return processBlock(ifBlock, vars, repeats);
+      }
+      return "";
     }
   );
 

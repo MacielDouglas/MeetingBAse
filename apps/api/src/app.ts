@@ -8,8 +8,9 @@ import { meetingsRoutes } from "./routes/meetings.js";
 import { syncRoutes } from "./routes/sync.js";
 import { generateRoutes } from "./routes/generate.js";
 import { runMigrations } from "./lib/migrate.js";
+import { authGuard } from "./lib/middleware.js";
 
-// Fase 5: app com auth, publishers, speakers, templates + auto-migrate.
+// Fase 5: app com auth middleware, auto-migrate, todos os endpoints protegidos.
 
 export async function buildApp() {
   const app = Fastify({ logger: false });
@@ -27,6 +28,9 @@ export async function buildApp() {
   await app.register(multipart, {
     limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   });
+
+  // Auth middleware on all requests (skips /salud, /auth/*)
+  app.addHook("preHandler", authGuard);
 
   app.get("/salud", async () => ({ ok: true, fase: "5" }));
 

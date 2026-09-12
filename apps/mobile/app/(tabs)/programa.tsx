@@ -7,7 +7,7 @@ import { Button, ScrollView, Text, View } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
 import {
-  CONGREGATION_ID,
+  getCongregationId,
   isNetworkError,
   publishMeeting,
 } from "../../lib/api";
@@ -25,10 +25,10 @@ export default function Programa() {
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
 
   const pub = useMutation({
-    mutationFn: (meetingId: string) => publishMeeting(CONGREGATION_ID, meetingId),
+    mutationFn: (meetingId: string) => publishMeeting(getCongregationId(), meetingId),
     onSuccess: async () => {
       setPublishMsg(null);
-      await client.invalidateQueries({ queryKey: ["programa", CONGREGATION_ID] });
+      await client.invalidateQueries({ queryKey: ["programa", getCongregationId()] });
     },
     onError: (e) => {
       setPublishMsg(

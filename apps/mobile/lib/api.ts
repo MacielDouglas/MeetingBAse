@@ -27,8 +27,17 @@ function uploadSignal(): AbortSignal | undefined {
   return undefined;
 }
 
-// TODO Fase 2: congregation_id vendrá de auth/sesión. Fijo en Fase 1.
-export const CONGREGATION_ID = "00000000-0000-0000-0000-000000000000";
+// Fase 5: getCongregationId() comes from auth session (set on login).
+let _congregationId = "";
+
+export function setCongregationId(id: string) {
+  _congregationId = id;
+}
+
+export function getCongregationId(): string {
+  if (!_congregationId) throw new Error("No hay sesión activa. Inicie sesión primero.");
+  return _congregationId;
+}
 
 export interface WeekSummary {
   index: number;
@@ -97,14 +106,15 @@ function parseUploadBody(result: { body: string; status: number }): UploadPrevie
 
 export async function uploadJwpubFile(
   picked: File,
-  mimeType = "application/octet-stream"
+  mimeType = "application/octet-stream",
+  congregationId: string
 ): Promise<UploadPreview> {
   // Subida directa del File devuelto por el picker nativo (iOS + Android).
   // Sin copia intermedia: evita "isn't readable" / "Missing READ permission"
   // de DocumentPicker en Android (Expo Go). El filename multipart usa
   // picked.name, que preserva mwb_*.jwpub para detección en el servidor.
   const result = await picked.upload(
-    `${API_URL}/c/${CONGREGATION_ID}/imports`,
+    `${API_URL}/c/${congregationId}/imports`,
     {
       httpMethod: "POST",
       uploadType: UploadType.MULTIPART,
@@ -130,7 +140,7 @@ export async function uploadJwpub(
   const src = new File(fileUri);
   try {
     const direct = await src.upload(
-      `${API_URL}/c/${CONGREGATION_ID}/imports`,
+      `${API_URL}/c/${getCongregationId()}/imports`,
       {
         httpMethod: "POST",
         uploadType: UploadType.MULTIPART,
@@ -151,7 +161,7 @@ export async function uploadJwpub(
   await src.copy(dest);
   try {
     const result = await dest.upload(
-      `${API_URL}/c/${CONGREGATION_ID}/imports`,
+      `${API_URL}/c/${getCongregationId()}/imports`,
       {
         httpMethod: "POST",
         uploadType: UploadType.MULTIPART,
@@ -180,7 +190,7 @@ export async function confirmImport(jobId: string, weeks?: number[]): Promise<Co
 }
 
 export async function getUploadedFiles(
-  congregationId = CONGREGATION_ID
+  congregationId = getCongregationId()
 ): Promise<UploadedFilesResult> {
   const res = await fetch(`${API_URL}/c/${congregationId}/imports/files`);
   const body = await res.json().catch(() => ({}));
@@ -190,7 +200,7 @@ export async function getUploadedFiles(
 
 export async function mergeImports(
   jobIds: string[],
-  congregationId = CONGREGATION_ID
+  congregationId = getCongregationId()
 ): Promise<UploadPreview> {
   const res = await fetch(`${API_URL}/c/${congregationId}/imports/merge`, {
     method: "POST",
@@ -204,7 +214,7 @@ export async function mergeImports(
 
 export async function deleteImport(
   jobId: string,
-  congregationId = CONGREGATION_ID
+  congregationId = getCongregationId()
 ): Promise<{ ok: boolean; uploaded_files: { filename: string; kind: string }[] }> {
   const res = await fetch(`${API_URL}/c/${congregationId}/imports/${jobId}`, {
     method: "DELETE",
@@ -237,7 +247,7 @@ export interface MeetingsResult {
   persistencia?: "neon" | "memoria";
 }
 
-export async function getMeetings(congregationId = CONGREGATION_ID): Promise<MeetingsResult> {
+export async function getMeetings(congregationId = getCongregationId()): Promise<MeetingsResult> {
   const res = await fetch(`${API_URL}/c/${congregationId}/meetings`);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al cargar el programa"));
@@ -326,7 +336,7 @@ export function isUuid(v: string): boolean {
 }
 
 export async function getSync(
-  congregationId = CONGREGATION_ID,
+  congregationId = getCongregationId(),
   since?: string
 ): Promise<SyncPayload> {
   const qs = since ? `?since=${encodeURIComponent(since)}` : "";

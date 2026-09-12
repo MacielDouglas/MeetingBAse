@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { neon } from "@neondatabase/serverless";
 import {
   mapMwbToParts,
   mapWatchtowerToParts,
@@ -117,12 +118,51 @@ export function isComplete(congregationId: string): boolean {
 
 // --- Catalog accessors (sjj → songs, s34 → talks) ---
 
+const neonSql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+
 export function getSongCatalog(congregationId: string): SongCatalogEntry[] {
   return songCatalog.get(congregationId) ?? [];
 }
 
 export function getTalkCatalog(congregationId: string): TalkCatalogEntry[] {
   return talkCatalog.get(congregationId) ?? [];
+}
+
+async function persistCatalog(congregationId: string, kind: string, data: unknown): Promise<void> {
+  if (!neonSql) return;
+  try {
+    await neonSql`
+      INSERT INTO catalogs (congregation_id, kind, data)
+      VALUES (${congregationId}, ${kind}, ${JSON.stringify(data)})
+      ON CONFLICT (congregation_id, kind)
+      DO UPDATE SET data = ${JSON.stringify(data)}
+    `;
+  } catch (e) {
+    console.error(`[importStore] Failed to persist ${kind} catalog:`, e);
+  }
+}
+
+export async function loadCatalogsFromDb(congregationId: string): Promise<void> {
+  if (!neonSql) return;
+  try {
+    const rows = await neonSql`SELECT kind, data FROM catalogs WHERE congregation_id = ${congregationId}`;
+    for (const row of rows) {
+      const data = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+      if (row.kind === "sjj") {
+        const entries: SongCatalogEntry[] = (data as SongCatalogEntry[]).filter(
+          (e) => e.number > 0 && e.title
+        );
+        songCatalog.set(congregationId, entries);
+      } else if (row.kind === "s34") {
+        const entries: TalkCatalogEntry[] = (data as TalkCatalogEntry[]).filter(
+          (e) => e.title
+        );
+        talkCatalog.set(congregationId, entries);
+      }
+    }
+  } catch (e) {
+    console.error("[importStore] Failed to load catalogs from DB:", e);
+  }
 }
 
 function storeSongCatalog(congregationId: string, rows: Record<string, string | number | undefined>[]): void {
@@ -133,6 +173,7 @@ function storeSongCatalog(congregationId: string, rows: Record<string, string | 
     }))
     .filter((e) => e.number > 0 && e.title);
   songCatalog.set(congregationId, entries);
+  persistCatalog(congregationId, "sjj", entries);
 }
 
 function storeTalkCatalog(congregationId: string, rows: Record<string, string | number | undefined>[]): void {
@@ -143,6 +184,7 @@ function storeTalkCatalog(congregationId: string, rows: Record<string, string | 
     }))
     .filter((e) => e.title);
   talkCatalog.set(congregationId, entries);
+  persistCatalog(congregationId, "s34", entries);
 }
 
 // --- Job management ---
