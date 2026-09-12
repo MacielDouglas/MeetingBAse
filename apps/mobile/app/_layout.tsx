@@ -22,6 +22,12 @@ function AuthGuard() {
     }
   }, [user, isLoading, segments]);
 
+  return null;
+}
+
+function AppContent() {
+  const { isLoading } = useAuth();
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -30,7 +36,15 @@ function AuthGuard() {
     );
   }
 
-  return null;
+  return (
+    <>
+      <AuthGuard />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="auth/login" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </>
+  );
 }
 
 // Layout raíz: QueryClient + Auth + Guard.
@@ -38,11 +52,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={client}>
       <AuthProvider>
-        <AuthGuard />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="auth/login" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        <AppContent />
       </AuthProvider>
     </QueryClientProvider>
   );
