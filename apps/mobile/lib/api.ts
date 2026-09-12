@@ -29,14 +29,24 @@ function uploadSignal(): AbortSignal | undefined {
 
 // Fase 5: getCongregationId() comes from auth session (set on login).
 let _congregationId = "";
+let _authToken = "";
 
 export function setCongregationId(id: string) {
   _congregationId = id;
 }
 
+export function setAuthToken(token: string) {
+  _authToken = token;
+}
+
 export function getCongregationId(): string {
   if (!_congregationId) throw new Error("No hay sesión activa. Inicie sesión primero.");
   return _congregationId;
+}
+
+function authHeaders(): Record<string, string> {
+  if (!_authToken) return {};
+  return { Authorization: `Bearer ${_authToken}` };
 }
 
 export interface WeekSummary {
@@ -120,6 +130,7 @@ export async function uploadJwpubFile(
       uploadType: UploadType.MULTIPART,
       fieldName: "file",
       mimeType,
+      headers: authHeaders(),
       signal: uploadSignal(),
     }
   );
@@ -146,6 +157,7 @@ export async function uploadJwpub(
         uploadType: UploadType.MULTIPART,
         fieldName: "file",
         mimeType,
+        headers: authHeaders(),
         signal: uploadSignal(),
       }
     );
@@ -167,6 +179,7 @@ export async function uploadJwpub(
         uploadType: UploadType.MULTIPART,
         fieldName: "file",
         mimeType,
+        headers: authHeaders(),
         signal: uploadSignal(),
       }
     );
@@ -181,7 +194,7 @@ export async function uploadJwpub(
 export async function confirmImport(jobId: string, weeks?: number[]): Promise<ConfirmResult> {
   const res = await fetch(`${API_URL}/imports/${jobId}/confirm`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(weeks && weeks.length > 0 ? { weeks } : {}),
   });
   const body = await res.json().catch(() => ({}));
@@ -192,7 +205,9 @@ export async function confirmImport(jobId: string, weeks?: number[]): Promise<Co
 export async function getUploadedFiles(
   congregationId = getCongregationId()
 ): Promise<UploadedFilesResult> {
-  const res = await fetch(`${API_URL}/c/${congregationId}/imports/files`);
+  const res = await fetch(`${API_URL}/c/${congregationId}/imports/files`, {
+    headers: authHeaders(),
+  });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al cargar archivos"));
   return body as UploadedFilesResult;
@@ -204,7 +219,7 @@ export async function mergeImports(
 ): Promise<UploadPreview> {
   const res = await fetch(`${API_URL}/c/${congregationId}/imports/merge`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ job_ids: jobIds }),
   });
   const body = await res.json().catch(() => ({}));
@@ -218,6 +233,7 @@ export async function deleteImport(
 ): Promise<{ ok: boolean; uploaded_files: { filename: string; kind: string }[] }> {
   const res = await fetch(`${API_URL}/c/${congregationId}/imports/${jobId}`, {
     method: "DELETE",
+    headers: authHeaders(),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al eliminar"));
@@ -248,7 +264,9 @@ export interface MeetingsResult {
 }
 
 export async function getMeetings(congregationId = getCongregationId()): Promise<MeetingsResult> {
-  const res = await fetch(`${API_URL}/c/${congregationId}/meetings`);
+  const res = await fetch(`${API_URL}/c/${congregationId}/meetings`, {
+    headers: authHeaders(),
+  });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al cargar el programa"));
   return body as MeetingsResult;
@@ -340,7 +358,9 @@ export async function getSync(
   since?: string
 ): Promise<SyncPayload> {
   const qs = since ? `?since=${encodeURIComponent(since)}` : "";
-  const res = await fetch(`${API_URL}/c/${congregationId}/sync${qs}`);
+  const res = await fetch(`${API_URL}/c/${congregationId}/sync${qs}`, {
+    headers: authHeaders(),
+  });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al sincronizar"));
   return body as SyncPayload;
@@ -353,7 +373,7 @@ export async function assignPart(
 ): Promise<AssignResult> {
   const res = await fetch(`${API_URL}/c/${congregationId}/parts/${partId}/assign`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({
       titular_id: input.titular_id.trim(),
       ...(input.ayudante_id && input.ayudante_id.trim()
@@ -372,6 +392,7 @@ export async function publishMeeting(
 ): Promise<PublishResult> {
   const res = await fetch(`${API_URL}/c/${congregationId}/meetings/${meetingId}/publish`, {
     method: "POST",
+    headers: authHeaders(),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al publicar"));

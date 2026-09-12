@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
-import { API_URL, setCongregationId } from "./api";
+import { API_URL, setCongregationId, setAuthToken } from "./api";
 
 const TOKEN_KEY = "mb_auth_token";
 const USER_KEY = "mb_auth_user";
@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setToken(savedToken);
           setUser(user);
           if (user.congregationId) setCongregationId(user.congregationId);
+          setAuthToken(savedToken);
         }
       } catch {}
       setIsLoading(false);
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(body.token);
     setUser(body.user);
     setCongregationId(body.user.congregationId);
+    setAuthToken(body.token);
   };
 
   const register = async (data: { email: string; password: string; nombre: string; congregation_id: string }) => {
@@ -83,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
     setCongregationId("");
+    setAuthToken("");
   };
 
   return (
