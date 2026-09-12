@@ -13,9 +13,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm install --legacy-peer-deps
       - name: Typecheck API
         run: npx tsc --noEmit -p apps/api/tsconfig.json
       - name: Typecheck Mobile
@@ -27,11 +27,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm install --legacy-peer-deps
       - name: Run API tests
-        run: npx vitest run --project api
+        run: npx vitest run
+        working-directory: apps/api
         env:
           DATABASE_URL: ""
 

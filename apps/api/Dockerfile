@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
-RUN npm ci --workspace=@meeting-base/api
+RUN npm install --legacy-peer-deps --workspace=@meeting-base/api
 
 # Copy source
 COPY apps/api ./apps/api
