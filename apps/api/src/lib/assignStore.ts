@@ -31,6 +31,7 @@ export interface MemWarningRow {
   meeting_id: string;
   congregation_id: string;
   publisher_id: string;
+  part_id: string | null;
   tipo: string;
   mensaje_es: string;
   created_at: string;
@@ -149,20 +150,20 @@ export function upsertMemAssignment(input: {
   return row;
 }
 
-// Troca warnings de (meeting, publisher): apaga os antigos e grava
-// 1 row por warning atual. Limitação documentada: warnings são por
-// meeting+publisher (schema sem part_id), então re-designar limpa
-// os avisos anteriores desse publicador na reunião.
+// Troca warnings de (meeting, publisher, part): apaga os antigos e grava
+// 1 row por warning atual. Agora com part_id para warnings por parte.
 export function replaceMemWarnings(input: {
   meetingId: string;
   congregationId: string;
   publisherId: string;
+  partId: string;
   items: { tipo: string; mensajeEs: string }[];
 }): MemWarningRow[] {
   for (let i = warnings.length - 1; i >= 0; i -= 1) {
     if (
       warnings[i].meeting_id === input.meetingId &&
-      warnings[i].publisher_id === input.publisherId
+      warnings[i].publisher_id === input.publisherId &&
+      warnings[i].part_id === input.partId
     ) {
       warnings.splice(i, 1);
     }
@@ -173,6 +174,7 @@ export function replaceMemWarnings(input: {
     meeting_id: input.meetingId,
     congregation_id: input.congregationId,
     publisher_id: input.publisherId,
+    part_id: input.partId,
     tipo: w.tipo,
     mensaje_es: w.mensajeEs,
     created_at: now,
@@ -181,13 +183,14 @@ export function replaceMemWarnings(input: {
   return rows;
 }
 
-// Apaga avisos de (meeting, publisher) — usado para limpar o titular
+// Apaga avisos de (meeting, publisher, part) — usado para limpar o titular
 // anterior ao trocar de titular (se ele não tem outra parte).
-export function deleteMemWarnings(meetingId: string, publisherId: string): void {
+export function deleteMemWarnings(meetingId: string, publisherId: string, partId?: string): void {
   for (let i = warnings.length - 1; i >= 0; i -= 1) {
     if (
       warnings[i].meeting_id === meetingId &&
-      warnings[i].publisher_id === publisherId
+      warnings[i].publisher_id === publisherId &&
+      (partId === undefined || warnings[i].part_id === partId)
     ) {
       warnings.splice(i, 1);
     }

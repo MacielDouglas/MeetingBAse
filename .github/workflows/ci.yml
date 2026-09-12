@@ -7,33 +7,43 @@ on:
     branches: [main]
 
 jobs:
-  api-test:
-    name: API Tests
+  lint-and-typecheck:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
+      - run: npm ci --legacy-peer-deps
+      - name: Typecheck API
+        run: npx tsc --noEmit -p apps/api/tsconfig.json
+      - name: Typecheck Mobile
+        run: npx tsc --noEmit -p apps/mobile/tsconfig.json
 
-  mobile-typecheck:
-    name: Mobile Typecheck
+  test-api:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm ci --legacy-peer-deps
+      - name: Run API tests
+        run: npx vitest run --project api
+        env:
+          DATABASE_URL: ""
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t meeting-base-api -f apps/api/Dockerfile .
+      - name: Test Docker health check
+        run: |
+          docker run -d --name api-test -p 3001:3001 meeting-base-api
+          sleep 5
+          curl -f http://localhost:3001/salud || (docker logs api-test && exit 1)
+          docker stop api-test

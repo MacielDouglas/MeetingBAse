@@ -47,6 +47,7 @@ export interface WarningRow {
   id: string;
   meeting_id: string;
   publisher_id: string;
+  part_id: string | null;
   tipo: string;
   mensaje_es: string;
   created_at: string;
@@ -152,19 +153,32 @@ export async function getNeonAssignment(
 
 export async function deleteNeonWarnings(
   meetingId: string,
-  publisherId: string
+  publisherId: string,
+  partId?: string
 ): Promise<void> {
   try {
     const db = getDb();
     if (!db) return;
-    await db
-      .delete(warnings)
-      .where(
-        and(
-          eq(warnings.meetingId, meetingId),
-          eq(warnings.publisherId, publisherId)
-        )
-      );
+    if (partId) {
+      await db
+        .delete(warnings)
+        .where(
+          and(
+            eq(warnings.meetingId, meetingId),
+            eq(warnings.publisherId, publisherId),
+            eq(warnings.partId, partId)
+          )
+        );
+    } else {
+      await db
+        .delete(warnings)
+        .where(
+          and(
+            eq(warnings.meetingId, meetingId),
+            eq(warnings.publisherId, publisherId)
+          )
+        );
+    }
   } catch {
     // best-effort
   }
@@ -208,13 +222,14 @@ export async function saveNeonAssignment(input: {
       .update(meetings)
       .set({ updatedAt: new Date() })
       .where(eq(meetings.id, input.meetingId));
-    // Troca warnings de (meeting, publisher) — ver limitação em docs.
+    // Delete warnings for this publisher in this meeting AND this part
     await db
       .delete(warnings)
       .where(
         and(
           eq(warnings.meetingId, input.meetingId),
-          eq(warnings.publisherId, input.titularId)
+          eq(warnings.publisherId, input.titularId),
+          eq(warnings.partId, input.partId)
         )
       );
     for (const w of input.items) {
@@ -222,6 +237,7 @@ export async function saveNeonAssignment(input: {
         id: randomUUID(),
         meetingId: input.meetingId,
         publisherId: input.titularId,
+        partId: input.partId,
         tipo: w.tipo,
         mensajeEs: w.mensajeEs,
       });
@@ -256,6 +272,7 @@ export async function saveNeonAssignment(input: {
         id: w.id,
         meeting_id: w.meetingId,
         publisher_id: w.publisherId,
+        part_id: w.partId ?? null,
         tipo: w.tipo,
         mensaje_es: w.mensajeEs,
         created_at: iso(w.createdAt),
@@ -327,6 +344,7 @@ export async function fetchNeonSyncData(
         id: w.id,
         meeting_id: w.meetingId,
         publisher_id: w.publisherId,
+        part_id: w.partId ?? null,
         tipo: w.tipo,
         mensaje_es: w.mensajeEs,
         created_at: iso(w.createdAt),

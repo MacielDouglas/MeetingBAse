@@ -1,0 +1,24 @@
+appId: com.meetingbase.app
+---
+# Registration flow test
+- launchApp
+- waitForAnimationToEnd
+- tapOn: "¿No tiene cuenta? Regístrese"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Crear una cuenta nueva"
+- tapOn: "Nombre"
+- inputText: "Test User"
+- tapOn: "Email"
+- inputText: "test@example.com"
+- tapOn: "Contraseña"
+- inputText: "test1234"
+- tapOn: "Crear nueva congregación"
+- tapOn: "Nombre de la congregación"
+- inputText: "Test Congregation"
+- tapOn: "Crear"
+- waitForAnimationToEnd
+- tapOn: "Registrarse"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Cuenta creada"

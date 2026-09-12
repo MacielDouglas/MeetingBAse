@@ -36,6 +36,8 @@ import type { ListedMeeting } from "./repoNeon.js";
 // Neon primeiro (se há DATABASE_URL), memória depois.
 // Designar exige online: validação sempre no servidor.
 
+// ---------- helpers for doble_asignacion ----------
+
 // ---------- assign ----------
 
 interface Bundle {
@@ -44,6 +46,7 @@ interface Bundle {
   titular: PublisherRef;
   ayudante: PublisherRef | null;
   yaAsignado: boolean;
+  ayudanteYaAsignado: boolean;
   fuente: "neon" | "memoria";
 }
 
@@ -75,6 +78,9 @@ async function bundleNeon(
     titular: tit,
     ayudante: ayu,
     yaAsignado: await titularAssignedNeon(hit.part.meetingId, titularId, partId),
+    ayudanteYaAsignado: ayudanteId
+      ? await titularAssignedNeon(hit.part.meetingId, ayudanteId, partId)
+      : false,
     fuente: "neon",
   };
 }
@@ -107,6 +113,9 @@ async function bundleMem(
     titular: tit,
     ayudante: ayu,
     yaAsignado: titularAssignedMem(hit.meetingId, titularId, partId),
+    ayudanteYaAsignado: ayudanteId
+      ? titularAssignedMem(hit.meetingId, ayudanteId, partId)
+      : false,
     fuente: "memoria",
   };
 }
@@ -126,7 +135,7 @@ async function dropPrevTitularNeon(
 ): Promise<void> {
   if (!prevTitular || prevTitular === titularId) return;
   if (await titularAssignedNeon(meetingId, prevTitular, partId)) return;
-  await deleteNeonWarnings(meetingId, prevTitular);
+  await deleteNeonWarnings(meetingId, prevTitular, partId);
 }
 
 export async function assignPart(
@@ -159,6 +168,7 @@ export async function assignPart(
     ayudanteId,
     part: b.part,
     titularYaAsignadoEstaSemana: b.yaAsignado,
+    ayudanteYaAsignadoEstaSemana: b.ayudanteYaAsignado,
   });
   const duro = warnings.find((w) => w.duro);
   if (duro) return { status: 422, body: { error: duro.mensajeEs } };
@@ -203,12 +213,13 @@ export async function assignPart(
     prevMem.titular_id !== titularId &&
     !titularAssignedMem(b.meetingId, prevMem.titular_id, b.part.id)
   ) {
-    deleteMemWarnings(b.meetingId, prevMem.titular_id);
+    deleteMemWarnings(b.meetingId, prevMem.titular_id, b.part.id);
   }
   const ws = replaceMemWarnings({
     meetingId: b.meetingId,
     congregationId: congId,
     publisherId: titularId,
+    partId: b.part.id,
     items: suaves.map((w) => ({ tipo: w.tipo, mensajeEs: w.mensajeEs })),
   });
   return {
@@ -329,7 +340,9 @@ export function buildSyncPayload(
       }))
     ),
     assignments: keepA.filter((a) => meetingIds.has(a.meeting_id)),
-    warnings: keepW.filter((w) => meetingIds.has(w.meeting_id)),
+    warnings: keepW
+      .filter((w) => meetingIds.has(w.meeting_id))
+      .map((w) => ({ ...w, part_id: w.part_id ?? null })),
     filtrado: t !== null,
     persistencia,
   };

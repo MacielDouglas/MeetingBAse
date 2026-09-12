@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDb, isDbConfigured } from "../../../../packages/db/db.js";
-import { users } from "../../../../packages/db/schema.js";
+import { users, congregations } from "../../../../packages/db/schema.js";
 
 // Fase 5 — Auth helpers: JWT + bcrypt. Neon first, in-memory fallback.
 
@@ -172,4 +172,147 @@ export async function seedAdmin(): Promise<void> {
     "00000000-0000-0000-0000-000000000000",
     "admin"
   );
+}
+
+// ---------- Congregations ----------
+
+export interface CongregationInfo {
+  id: string;
+  nombre: string;
+  numero: string | null;
+  circuito: string | null;
+  timezone: string;
+}
+
+const memCongregations = new Map<string, CongregationInfo>();
+
+export async function listCongregations(): Promise<CongregationInfo[]> {
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        const rows = await db.select().from(congregations);
+        return rows.map((r) => ({
+          id: r.id,
+          nombre: r.nombre,
+          numero: r.numero,
+          circuito: r.circuito,
+          timezone: r.timezone,
+        }));
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+  return [...memCongregations.values()];
+}
+
+export async function createCongregation(
+  nombre: string,
+  numero?: string,
+  circuito?: string,
+  timezone = "America/Santiago"
+): Promise<CongregationInfo> {
+  const id = randomUUID();
+
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        await db.insert(congregations).values({
+          id,
+          nombre,
+          numero: numero ?? null,
+          circuito: circuito ?? null,
+          timezone,
+        });
+        return { id, nombre, numero: numero ?? null, circuito: circuito ?? null, timezone };
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+
+  const cong: CongregationInfo = {
+    id,
+    nombre,
+    numero: numero ?? null,
+    circuito: circuito ?? null,
+    timezone,
+  };
+  memCongregations.set(id, cong);
+  return cong;
+}
+
+// ---------- Profile ----------
+
+export async function updateUserProfile(
+  userId: string,
+  congregationId: string,
+  data: { nombre?: string; email?: string; password?: string }
+): Promise<AuthUser> {
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        const updateData: Record<string, unknown> = {};
+        if (data.nombre) updateData.nombre = data.nombre;
+        if (data.email) updateData.email = data.email.toLowerCase();
+        if (data.password) updateData.passwordHash = await hashPassword(data.password);
+        if (Object.keys(updateData).length > 0) {
+          await db.update(users).set(updateData).where(eq(users.id, userId));
+        }
+        const rows = await db.select().from(users).where(eq(users.id, userId));
+        const r = rows[0];
+        if (r) {
+          return { id: r.id, congregationId: r.congregationId, email: r.email, nombre: r.nombre, rol: r.rol };
+        }
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+  // In-memory fallback
+  for (const u of memUsers.values()) {
+    if (u.id === userId) {
+      if (data.nombre) u.nombre = data.nombre;
+      if (data.email) u.email = data.email.toLowerCase();
+      if (data.password) u.passwordHash = await hashPassword(data.password);
+      return { id: u.id, congregationId: u.congregationId, email: u.email, nombre: u.nombre, rol: u.rol };
+    }
+  }
+  throw new Error("Usuario no encontrado");
+}
+
+// ---------- Password Reset ----------
+
+export async function resetPassword(email: string): Promise<{ message: string; tempPassword?: string }> {
+  const e = email.toLowerCase();
+  const tempPassword = randomUUID().slice(0, 8);
+
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        const rows = await db.select().from(users).where(eq(users.email, e));
+        const user = rows[0];
+        if (!user) {
+          // Don't reveal if user exists
+          return { message: "Si el email existe, se ha restablecido la contraseña" };
+        }
+        const hash = await hashPassword(tempPassword);
+        await db.update(users).set({ passwordHash: hash }).where(eq(users.id, user.id));
+        return { message: "Contraseña restablecida", tempPassword };
+      }
+    } catch {
+      // fallback to memory
+    }
+  }
+
+  const user = memUsers.get(e);
+  if (user) {
+    user.passwordHash = await hashPassword(tempPassword);
+    return { message: "Contraseña restablecida", tempPassword };
+  }
+  return { message: "Si el email existe, se ha restablecido la contraseña" };
 }

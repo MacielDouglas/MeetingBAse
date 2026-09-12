@@ -5,6 +5,8 @@ import { ActivityIndicator, View } from "react-native";
 import { useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { registerForPushNotifications, setupNotificationListeners } from "../lib/notifications";
+import "../i18n";
 
 const client = new QueryClient();
 
@@ -26,6 +28,31 @@ function AuthGuard() {
   return null;
 }
 
+function NotificationSetup() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!user) return;
+
+    registerForPushNotifications();
+
+    const cleanup = setupNotificationListeners(
+      (_notification) => {},
+      (response) => {
+        const data = response.notification.request.content.data;
+        if (data?.screen) {
+          router.push(data.screen as string);
+        }
+      }
+    );
+
+    return cleanup;
+  }, [user, router]);
+
+  return null;
+}
+
 function AppContent() {
   const { isLoading } = useAuth();
 
@@ -40,6 +67,7 @@ function AppContent() {
   return (
     <>
       <AuthGuard />
+      <NotificationSetup />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/register" />

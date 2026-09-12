@@ -1,0 +1,17 @@
+appId: com.meetingbase.app
+---
+# Login flow test
+- launchApp
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Meeting Base"
+- assertVisible:
+    text: "Inicie sesión para continuar"
+- tapOn: "Email"
+- inputText: "admin@meeting-base.local"
+- tapOn: "Contraseña"
+- inputText: "admin123"
+- tapOn: "Iniciar sesión"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Inicio"

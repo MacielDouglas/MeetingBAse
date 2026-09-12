@@ -9,7 +9,14 @@
     "expo-sqlite",
     "expo-secure-store",
     "expo-sharing",
-    "expo-notifications"
+    "expo-notifications",
+    [
+      "expo-updates",
+      {
+        "checkAutomatically": "ON_LOAD",
+        "fallbackToCacheTimeout": 300
+      }
+    ]
   ],
   "experiments": {
     "typedRoutes": false
@@ -24,7 +31,10 @@
   },
   "extra": {
     "eas": {
-      "projectId": ""
+      "projectId": "YOUR_PROJECT_ID_RUN_EAS_INIT"
     }
+  },
+  "updates": {
+    "url": "https://u.expo.dev/YOUR_PROJECT_ID_RUN_EAS_INIT"
   }
 }

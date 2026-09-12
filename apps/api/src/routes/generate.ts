@@ -93,4 +93,47 @@ export async function generateRoutes(app: FastifyInstance) {
       .header("Content-Type", "text/html; charset=utf-8")
       .send(rendered);
   });
+
+  // iCal export for all meetings in a congregation
+  app.get("/c/:id/ical", async (req, reply) => {
+    const params = congIdParam.safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
+
+    const meetings = listConfirmedMeetings(params.data.id);
+    const published = meetings.filter((m) => m.estado === "published");
+
+    const lines: string[] = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Meeting Base//ES",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "X-WR-CALNAME:Meeting Base",
+      "X-WR-TIMEZONE:America/Santiago",
+    ];
+
+    for (const m of published) {
+      const dateStr = m.fecha.replace(/-/g, "");
+      const parts = m.parts.map((p: { titulo: string }) => p.titulo).join(", ");
+      const uid = `${m.id}@meeting-base`;
+      lines.push(
+        "BEGIN:VEVENT",
+        `UID:${uid}`,
+        `DTSTART;VALUE=DATE:${dateStr}`,
+        `DTEND;VALUE=DATE:${dateStr}`,
+        `SUMMARY:Reunión - ${m.tipo}`,
+        `DESCRIPTION:${m.semana_label ?? ""}\\n${parts}`,
+        "STATUS:CONFIRMED",
+        "END:VEVENT"
+      );
+    }
+
+    lines.push("END:VCALENDAR");
+
+    const ical = lines.join("\r\n");
+    return reply
+      .header("Content-Type", "text/calendar; charset=utf-8")
+      .header("Content-Disposition", 'attachment; filename="meeting-base.ics"')
+      .send(ical);
+  });
 }

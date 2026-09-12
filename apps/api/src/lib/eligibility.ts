@@ -25,6 +25,7 @@ export interface EligibilityInput {
   ayudanteId?: string | null;
   part: PartRef;
   titularYaAsignadoEstaSemana?: boolean;
+  ayudanteYaAsignadoEstaSemana?: boolean;
 }
 
 export interface EligibilityWarning {
@@ -111,11 +112,20 @@ export function checkEligibility(input: EligibilityInput): {
     });
   }
 
-  // Suave: doble asignacion en la misma semana.
+  // Suave: doble asignacion en la misma semana (titular).
   if (input.titularYaAsignadoEstaSemana) {
     warnings.push({
       tipo: "doble_asignacion",
       mensajeEs: "Atención: ya tiene otra parte esta semana",
+      duro: false,
+    });
+  }
+
+  // Suave: doble asignacion en la misma semana (ayudante).
+  if (input.ayudanteYaAsignadoEstaSemana) {
+    warnings.push({
+      tipo: "doble_asignacion_ayudante",
+      mensajeEs: "Atención: el ayudante ya tiene otra parte esta semana",
       duro: false,
     });
   }

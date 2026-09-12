@@ -9,20 +9,39 @@ import { syncRoutes } from "./routes/sync.js";
 import { generateRoutes } from "./routes/generate.js";
 import { runMigrations } from "./lib/migrate.js";
 import { authGuard } from "./lib/middleware.js";
+import { rateLimit } from "./lib/rateLimit.js";
+import { logger, logRequest, logError, logMigration } from "./lib/logger.js";
 
 // Fase 5: app com auth middleware, auto-migrate, todos os endpoints protegidos.
+// Fase 9: rate limiting, logging.
 
 export async function buildApp() {
   const app = Fastify({ logger: false });
 
+  // Request logging
+  app.addHook("onResponse", (req, reply, done) => {
+    const start = (req as unknown as { startTime?: number }).startTime;
+    const ms = start ? Date.now() - start : 0;
+    logRequest(req.method, req.url, reply.statusCode, ms);
+    done();
+  });
+
+  app.addHook("onRequest", (req, _reply, done) => {
+    (req as unknown as { startTime: number }).startTime = Date.now();
+    done();
+  });
+
   // Run SQL migrations on startup (idempotent, skips already applied)
   try {
     const result = await runMigrations();
-    if (result.applied.length > 0) {
-      console.log(`Migrations applied: ${result.applied.join(", ")}`);
+    for (const f of result.applied) {
+      logMigration(f, "applied");
+    }
+    for (const f of result.skipped) {
+      logMigration(f, "skipped");
     }
   } catch (e) {
-    console.error("Migration error (non-fatal):", e instanceof Error ? e.message : e);
+    logError("Migration error (non-fatal)", e);
   }
 
   await app.register(multipart, {
@@ -32,7 +51,10 @@ export async function buildApp() {
   // Auth middleware on all requests (skips /salud, /auth/*)
   app.addHook("preHandler", authGuard);
 
-  app.get("/salud", async () => ({ ok: true, fase: "5" }));
+  // Rate limiting (after auth to skip rate limiting for health checks)
+  app.addHook("preHandler", rateLimit);
+
+  app.get("/salud", async () => ({ ok: true, fase: "9" }));
 
   await app.register(authRoutes);
   await app.register(publishersRoutes);

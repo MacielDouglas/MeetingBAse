@@ -1,8 +1,9 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { verifyToken, type AuthUser } from "./auth.js";
+import { setCongregationContext } from "../../../../packages/db/db.js";
 
-// Auth middleware: verifies Bearer token and attaches user to request.
-// Excludes: /salud, /auth/login, /auth/register
+// Auth middleware: verifies Bearer token, attaches user to request,
+// and sets RLS congregation context for defense-in-depth.
 
 const PUBLIC_PATHS = new Set(["/salud", "/auth/login", "/auth/register"]);
 
@@ -28,6 +29,11 @@ export async function authGuard(req: FastifyRequest, reply: FastifyReply): Promi
 
   // Attach user to request for downstream use
   (req as FastifyRequest & { user?: AuthUser }).user = user;
+
+  // Set RLS congregation context (best-effort, defense-in-depth)
+  if (user.congregationId) {
+    await setCongregationContext(user.congregationId);
+  }
 }
 
 // Helper: get authenticated user from request

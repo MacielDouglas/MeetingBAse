@@ -50,6 +50,7 @@ export async function initDb(): Promise<void> {
       id TEXT PRIMARY KEY NOT NULL,
       meeting_id TEXT NOT NULL,
       publisher_id TEXT NOT NULL,
+      part_id TEXT,
       tipo TEXT NOT NULL,
       mensaje_es TEXT NOT NULL,
       created_at TEXT NOT NULL
@@ -173,10 +174,11 @@ export async function saveSyncPayload(
     }
     for (const w of payload.warnings ?? []) {
       d.runSync(
-        "INSERT OR REPLACE INTO warnings (id, meeting_id, publisher_id, tipo, mensaje_es, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO warnings (id, meeting_id, publisher_id, part_id, tipo, mensaje_es, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         str(w.id),
         str(w.meeting_id),
         str(w.publisher_id),
+        (w as { part_id?: string | null }).part_id ?? null,
         str(w.tipo),
         str(w.mensaje_es),
         str(w.created_at, now)
@@ -236,20 +238,21 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
     id: string;
     meeting_id: string;
     publisher_id: string;
+    part_id: string | null;
     tipo: string;
     mensaje_es: string;
   }>(
-    "SELECT id, meeting_id, publisher_id, tipo, mensaje_es FROM warnings WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?)",
+    "SELECT id, meeting_id, publisher_id, part_id, tipo, mensaje_es FROM warnings WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?)",
     congregationId
   );
 
   const byPart = new Map(as.map((a) => [a.part_id, a]));
-  const warnsByKey = new Map<string, ProgramaWarning[]>();
+  const warnsByPart = new Map<string, ProgramaWarning[]>();
   for (const w of ws) {
-    const k = `${w.meeting_id}::${w.publisher_id}`;
-    const list = warnsByKey.get(k) ?? [];
+    const k = w.part_id ?? `${w.meeting_id}::${w.publisher_id}`;
+    const list = warnsByPart.get(k) ?? [];
     list.push({ id: w.id, tipo: w.tipo, mensaje_es: w.mensaje_es });
-    warnsByKey.set(k, list);
+    warnsByPart.set(k, list);
   }
   const partsByMeeting = new Map<string, ProgramaPart[]>();
   for (const p of ps) {
@@ -267,7 +270,7 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
       needs_review: p.needs_review === 1,
       titular_id: a?.titular_id ?? null,
       ayudante_id: a?.ayudante_id ?? null,
-      warnings: a ? (warnsByKey.get(`${p.meeting_id}::${a.titular_id}`) ?? []) : [],
+      warnings: warnsByPart.get(p.id) ?? [],
     });
     partsByMeeting.set(p.meeting_id, list);
   }

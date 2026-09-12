@@ -80,6 +80,7 @@ export const warnings = pgTable("assignment_warnings", {
   id: uuid("id").defaultRandom().primaryKey(),
   meetingId: uuid("meeting_id").notNull(),
   publisherId: uuid("publisher_id").notNull(),
+  partId: uuid("part_id"),
   tipo: text("tipo").notNull(),
   mensajeEs: text("mensaje_es").notNull(),
   reconocidoPor: uuid("reconocido_por"),
