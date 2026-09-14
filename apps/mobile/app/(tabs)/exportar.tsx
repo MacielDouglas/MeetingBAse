@@ -116,7 +116,7 @@ export default function ExportarScreen() {
       {htmlContent ? (
         <View style={{ gap: 8 }}>
           <Text style={{ fontWeight: "bold" }}>{es["Documento generado"]}</Text>
-          <Button title="Compartir" onPress={handleShare} />
+          <Button title={es["Compartir"]} onPress={handleShare} />
           <Button title="Imprimir" onPress={handlePrint} />
           <Button title="Exportar PDF" onPress={handlePrintToPdf} />
           <Button title="Cerrar vista previa" onPress={() => setHtmlContent(null)} color="#888" />

@@ -90,6 +90,7 @@ export default function VisitsScreen() {
 
       {showForm && (
         <View style={{ gap: 8, padding: 12, backgroundColor: "#f5f5f5", borderRadius: 8 }}>
+          <Text style={{ fontSize: 13, color: "#555" }}>{es["Falante"]}</Text>
           <FlatList data={speakers.data ?? []} keyExtractor={(item) => item.id} horizontal showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
               <Button title={item.nombre} onPress={() => setSpeakerId(item.id)} color={speakerId === item.id ? "#1a5276" : "#ccc"} />

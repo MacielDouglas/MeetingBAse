@@ -16,9 +16,9 @@ interface Publisher {
 }
 
 const CARGO_LABELS: Record<string, string> = {
-  anciano: "Anciano",
-  siervo_ministerial: "Siervo ministerial",
-  publicador: "Publicador",
+  anciano: es["Anciano"],
+  siervo_ministerial: es["Siervo ministerial"],
+  publicador: es["Publicador"],
 };
 
 export default function PublishersScreen() {
@@ -50,7 +50,7 @@ export default function PublishersScreen() {
         body: JSON.stringify(data),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "Error al crear");
+      if (!res.ok) throw new Error(body.error ?? es["Error al crear"]);
       return body.publisher;
     },
     onSuccess: () => {
@@ -60,8 +60,8 @@ export default function PublishersScreen() {
       setShowForm(false);
     },
     onError: (e) => {
-      const msg = isNetworkError(e) ? "Sin conexión. Intente más tarde." : (e as Error).message;
-      Alert.alert("Error", msg);
+      const msg = isNetworkError(e) ? es["Sin conexión. Intente más tarde."] : (e as Error).message;
+      Alert.alert(es["Error"], msg);
     },
   });
 
@@ -71,20 +71,20 @@ export default function PublishersScreen() {
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error("Error al eliminar");
+      if (!res.ok) throw new Error(es["Error al eliminar"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["publishers", congId] });
     },
     onError: (e) => {
-      const msg = isNetworkError(e) ? "Sin conexión. Intente más tarde." : (e as Error).message;
-      Alert.alert("Error", msg);
+      const msg = isNetworkError(e) ? es["Sin conexión. Intente más tarde."] : (e as Error).message;
+      Alert.alert(es["Error"], msg);
     },
   });
 
   function handleCreate() {
     if (!nombre.trim()) {
-      Alert.alert("Error", "Nombre requerido");
+      Alert.alert(es["Error"], es["Nombre requerido"]);
       return;
     }
     create.mutate({ nombre: nombre.trim(), sexo, cargo, telefono: telefono || undefined });
@@ -99,45 +99,47 @@ export default function PublishersScreen() {
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Publicadores"]}</Text>
 
       <Button
-        title={showForm ? "Cancelar" : "+ Nuevo publicador"}
+        title={showForm ? es["Cancelar"] : `+ ${es["Nuevo publicador"]}`}
         onPress={() => setShowForm(!showForm)}
       />
 
       {showForm && (
         <View style={{ gap: 8, padding: 12, backgroundColor: "#f5f5f5", borderRadius: 8 }}>
           <TextInput
-            placeholder="Nombre"
+            placeholder={es["Nombre"]}
             value={nombre}
             onChangeText={setNombre}
             style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
           />
+          <Text style={{ fontSize: 13, color: "#555" }}>{es["Sexo"]}</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Button title="M" onPress={() => setSexo("M")} color={sexo === "M" ? "#1a5276" : "#ccc"} />
             <Button title="F" onPress={() => setSexo("F")} color={sexo === "F" ? "#1a5276" : "#ccc"} />
           </View>
+          <Text style={{ fontSize: 13, color: "#555" }}>{es["Cargo"]}</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             {(["publicador", "siervo_ministerial", "anciano"] as const).map((c) => (
               <Button key={c} title={CARGO_LABELS[c]} onPress={() => setCargo(c)} color={cargo === c ? "#7d3c98" : "#ccc"} />
             ))}
           </View>
           <TextInput
-            placeholder="Teléfono (opcional)"
+            placeholder={es["Teléfono (opcional)"]}
             value={telefono}
             onChangeText={setTelefono}
             keyboardType="phone-pad"
             style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
           />
-          <Button title={create.isPending ? "Creando..." : "Crear publicador"} onPress={handleCreate} disabled={create.isPending} />
+          <Button title={create.isPending ? es["Creando..."] : es["Crear publicador"]} onPress={handleCreate} disabled={create.isPending} />
         </View>
       )}
 
-      <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar publicador..." />
+      <SearchBar value={search} onChangeText={setSearch} placeholder={es["Buscar publicador..."]} />
 
       {pubs.isLoading ? <SkeletonRow lines={4} /> : null}
 
       {pubs.isError ? (
         <Text style={{ color: "#e74c3c", textAlign: "center" }}>
-          {isNetworkError(pubs.error) ? "Sin conexión" : "Error al cargar"}
+          {isNetworkError(pubs.error) ? es["Sin conexión"] : es["Error al cargar"]}
         </Text>
       ) : null}
 
@@ -154,9 +156,9 @@ export default function PublishersScreen() {
               </Text>
             </View>
             <Button title="X" onPress={() => {
-              Alert.alert("Eliminar", `¿Eliminar ${item.nombre}?`, [
-                { text: "Cancelar" },
-                { text: "Eliminar", onPress: () => del.mutate(item.id) },
+              Alert.alert(es["Eliminar"], `¿Eliminar ${item.nombre}?`, [
+                { text: es["Cancelar"] },
+                { text: es["Eliminar"], onPress: () => del.mutate(item.id) },
               ]);
             }} />
           </View>
