@@ -4,8 +4,7 @@
 // Mesma queryKey ["publishers", congId] = cache compartilhado.
 
 import { useQuery } from "@tanstack/react-query";
-import { API_URL } from "../lib/api";
-import { authHeaders } from "../lib/auth";
+import { API_URL, authHeaders } from "../lib/api";
 
 export interface PublisherRef {
   id: string;
@@ -14,12 +13,12 @@ export interface PublisherRef {
   cargo: string;
 }
 
-export function usePublishers(congId: string | null, token: string | null) {
+export function usePublishers(congId: string | null) {
   return useQuery<PublisherRef[], Error>({
     queryKey: ["publishers", congId],
     queryFn: async () => {
       const res = await fetch(`${API_URL}/c/${congId}/publishers`, {
-        headers: authHeaders(token),
+        headers: authHeaders(),
       });
       const body = await res.json().catch(() => ({}));
       return (body.publishers ?? []) as PublisherRef[];

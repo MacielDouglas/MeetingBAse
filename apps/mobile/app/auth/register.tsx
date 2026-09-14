@@ -3,6 +3,7 @@ import { Button, Text, TextInput, View, Alert, Pressable, ScrollView, ActivityIn
 import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { listCongregations, createCongregation, type CongregationInfo } from "../../lib/api";
+import es from "../../i18n/es.json";
 
 export default function RegisterScreen() {
   const [nombre, setNombre] = useState("");
@@ -36,7 +37,7 @@ export default function RegisterScreen() {
 
   async function handleCreateCongregation() {
     if (!newCongName.trim()) {
-      Alert.alert("Error", "Nombre de congregación requerido");
+      Alert.alert(es["Error"], es["Nombre de congregación requerido"]);
       return;
     }
     setCreatingCong(true);
@@ -48,7 +49,7 @@ export default function RegisterScreen() {
       setNewCongName("");
       setNewCongNumber("");
     } catch (e) {
-      Alert.alert("Error", (e as Error).message);
+      Alert.alert(es["Error"], (e as Error).message);
     } finally {
       setCreatingCong(false);
     }
@@ -56,17 +57,17 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     if (!nombre || !email || !password || !congregationId) {
-      Alert.alert("Error", "Todos los campos son requeridos");
+      Alert.alert(es["Error"], es["Todos los campos son requeridos"]);
       return;
     }
     setLoading(true);
     try {
       await register({ email, password, nombre, congregation_id: congregationId });
-      Alert.alert("Éxito", "Cuenta creada. Ahora inicie sesión.", [
+      Alert.alert(es["Éxito"], es["Cuenta creada. Ahora inicie sesión."], [
         { text: "OK", onPress: () => router.replace("/auth/login") },
       ]);
     } catch (e) {
-      Alert.alert("Error", (e as Error).message);
+      Alert.alert(es["Error"], (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -78,11 +79,11 @@ export default function RegisterScreen() {
         Meeting Base
       </Text>
       <Text style={{ textAlign: "center", color: "#666" }}>
-        Crear una cuenta nueva
+        {es["Crear una cuenta nueva"]}
       </Text>
 
       <TextInput
-        placeholder="Nombre"
+        placeholder={es["Nombre"]}
         value={nombre}
         onChangeText={setNombre}
         autoCapitalize="words"
@@ -90,7 +91,7 @@ export default function RegisterScreen() {
       />
 
       <TextInput
-        placeholder="Email"
+        placeholder={es["Email"]}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -99,7 +100,7 @@ export default function RegisterScreen() {
       />
 
       <TextInput
-        placeholder="Contraseña"
+        placeholder={es["Contraseña"]}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -107,27 +108,27 @@ export default function RegisterScreen() {
       />
 
       <View>
-        <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 6 }}>Congregación</Text>
+        <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 6 }}>{es["Congregación"]}</Text>
         {loadingCongs ? (
           <ActivityIndicator style={{ marginVertical: 8 }} />
         ) : showCreateCong ? (
           <View style={{ gap: 8 }}>
             <TextInput
-              placeholder="Nombre de la congregación"
+              placeholder={es["Nombre de la congregación"]}
               value={newCongName}
               onChangeText={setNewCongName}
               style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 12, fontSize: 16 }}
             />
             <TextInput
-              placeholder="Número (opcional)"
+              placeholder={es["Número (opcional)"]}
               value={newCongNumber}
               onChangeText={setNewCongNumber}
               keyboardType="numeric"
               style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 12, fontSize: 16 }}
             />
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <Button title={creatingCong ? "Creando..." : "Crear"} onPress={handleCreateCongregation} disabled={creatingCong} />
-              <Button title="Cancelar" onPress={() => setShowCreateCong(false)} color="#999" />
+              <Button title={creatingCong ? es["Creando..."] : es["Crear"]} onPress={handleCreateCongregation} disabled={creatingCong} />
+              <Button title={es["Cancelar"]} onPress={() => setShowCreateCong(false)} color="#999" />
             </View>
           </View>
         ) : (
@@ -151,21 +152,21 @@ export default function RegisterScreen() {
                 </Pressable>
               ))
             ) : (
-              <Text style={{ color: "#999", fontSize: 13 }}>No hay congregaciones disponibles</Text>
+              <Text style={{ color: "#999", fontSize: 13 }}>{es["No hay congregaciones disponibles"]}</Text>
             )}
-            <Button title="Crear nueva congregación" onPress={() => setShowCreateCong(true)} color="#007AFF" />
+            <Button title={es["Crear nueva congregación"]} onPress={() => setShowCreateCong(true)} color="#007AFF" />
           </View>
         )}
       </View>
 
       <Button
-        title={loading ? "Creando cuenta..." : "Registrarse"}
+        title={loading ? es["Creando cuenta..."] : es["Registrarse"]}
         onPress={handleRegister}
         disabled={loading}
       />
 
       <Pressable onPress={() => router.replace("/auth/login")} style={{ alignItems: "center" }}>
-        <Text style={{ color: "#007AFF" }}>¿Ya tiene cuenta? Inicie sesión</Text>
+        <Text style={{ color: "#007AFF" }}>{es["¿Ya tiene cuenta? Inicie sesión"]}</Text>
       </Pressable>
     </ScrollView>
   );

@@ -3,6 +3,7 @@ import { Button, Text, TextInput, View, Alert, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { resetPassword } from "../../lib/api";
+import es from "../../i18n/es.json";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -13,7 +14,7 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!email || !password) {
-      Alert.alert("Error", "Email y contraseña requeridos");
+      Alert.alert(es["Error"], es["Email y contraseña requeridos"]);
       return;
     }
     setLoading(true);
@@ -21,7 +22,7 @@ export default function LoginScreen() {
       await login(email, password);
       router.replace("/(tabs)");
     } catch (e) {
-      Alert.alert("Error", (e as Error).message);
+      Alert.alert(es["Error"], (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -29,23 +30,23 @@ export default function LoginScreen() {
 
   async function handleForgotPassword() {
     if (!email) {
-      Alert.alert("Info", "Ingrese su email y presione Olvidé mi contraseña");
+      Alert.alert(es["Info"], `${es["Ingrese su email y presione Olvidé mi contraseña"]}`);
       return;
     }
-    Alert.alert("Restablecer contraseña", `Se enviará una nueva contraseña a ${email}`, [
-      { text: "Cancelar" },
+    Alert.alert(es["Restablecer contraseña"], `${es["Se enviará una nueva contraseña a"]} ${email}`, [
+      { text: es["Cancelar"] },
       {
-        text: "Aceptar",
+        text: es["Aceptar"],
         onPress: async () => {
           try {
             const result = await resetPassword(email);
             if (result.tempPassword) {
-              Alert.alert("Contraseña temporal", `Su nueva contraseña es: ${result.tempPassword}\n\nCambiela después de iniciar sesión.`);
+              Alert.alert(es["Contraseña temporal"], `${es["Su nueva contraseña es"]}: ${result.tempPassword}\n\n${es["Cambiela después de iniciar sesión."]}`);
             } else {
-              Alert.alert("Info", result.message);
+              Alert.alert(es["Info"], result.message);
             }
           } catch (e) {
-            Alert.alert("Error", (e as Error).message);
+            Alert.alert(es["Error"], (e as Error).message);
           }
         },
       },
@@ -58,11 +59,11 @@ export default function LoginScreen() {
         Meeting Base
       </Text>
       <Text style={{ textAlign: "center", color: "#666" }}>
-        Inicie sesión para continuar
+        {es["Inicie sesión para continuar"]}
       </Text>
 
       <TextInput
-        placeholder="Email"
+        placeholder={es["Email"]}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -77,7 +78,7 @@ export default function LoginScreen() {
       />
 
       <TextInput
-        placeholder="Contraseña"
+        placeholder={es["Contraseña"]}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -91,17 +92,17 @@ export default function LoginScreen() {
       />
 
       <Button
-        title={loading ? "Iniciando..." : "Iniciar sesión"}
+        title={loading ? es["Iniciando..."] : es["Iniciar sesión"]}
         onPress={handleLogin}
         disabled={loading}
       />
 
       <Pressable onPress={handleForgotPassword} style={{ alignItems: "center" }}>
-        <Text style={{ color: "#e74c3c" }}>Olvidé mi contraseña</Text>
+        <Text style={{ color: "#e74c3c" }}>{es["Olvidé mi contraseña"]}</Text>
       </Pressable>
 
       <Pressable onPress={() => router.replace("/auth/register")} style={{ alignItems: "center" }}>
-        <Text style={{ color: "#007AFF" }}>¿No tiene cuenta? Regístrese</Text>
+        <Text style={{ color: "#007AFF" }}>{es["¿No tiene cuenta? Regístrese"]}</Text>
       </Pressable>
     </View>
   );

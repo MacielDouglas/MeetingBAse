@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { Button, FlatList, Text, TextInput, View, Alert } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
-import { API_URL, isNetworkError } from "../../lib/api";
+import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
 import { SearchBar } from "../../components/SearchBar";
 import { SkeletonRow } from "../../components/Skeleton";
+import es from "../../i18n/es.json";
 
 interface Speaker { id: string; nombre: string; }
 interface Visit { id: string; speakerId: string; fecha: string; talkNumber?: number; notas?: string; estado: string; }
 
 export default function VisitsScreen() {
-  const { user, token } = useAuth();
-  const congId = getCongregationId(user);
+  const congId = getCongregationId();
   const queryClient = useQueryClient();
   const [speakerId, setSpeakerId] = useState("");
   const [fecha, setFecha] = useState("");
@@ -22,7 +21,7 @@ export default function VisitsScreen() {
   const speakers = useQuery({
     queryKey: ["speakers", congId],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/c/${congId}/speakers`, { headers: authHeaders(token) });
+      const res = await fetch(`${API_URL}/c/${congId}/speakers`, { headers: authHeaders() });
       const body = await res.json();
       return (body.speakers ?? []) as Speaker[];
     },
@@ -31,7 +30,7 @@ export default function VisitsScreen() {
   const visits = useQuery({
     queryKey: ["visits", congId],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/c/${congId}/visits`, { headers: authHeaders(token) });
+      const res = await fetch(`${API_URL}/c/${congId}/visits`, { headers: authHeaders() });
       const body = await res.json();
       return (body.visits ?? []) as Visit[];
     },
@@ -41,11 +40,11 @@ export default function VisitsScreen() {
     mutationFn: async (data: { speaker_id: string; fecha: string; notas?: string }) => {
       const res = await fetch(`${API_URL}/c/${congId}/visits`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders(token) },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "Error al crear");
+      if (!res.ok) throw new Error(body.error ?? es["Error al crear"]);
       return body.visit;
     },
     onSuccess: () => {
@@ -53,30 +52,30 @@ export default function VisitsScreen() {
       setSpeakerId(""); setFecha(""); setNotas(""); setShowForm(false);
     },
     onError: (e) => {
-      const msg = isNetworkError(e) ? "Sin conexión. Intente más tarde." : (e as Error).message;
-      Alert.alert("Error", msg);
+      const msg = isNetworkError(e) ? es["Sin conexión. Intente más tarde."] : (e as Error).message;
+      Alert.alert(es["Error"], msg);
     },
   });
 
   const del = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${API_URL}/c/${congId}/visits/${id}`, { method: "DELETE", headers: authHeaders(token) });
-      if (!res.ok) throw new Error("Error al eliminar");
+      const res = await fetch(`${API_URL}/c/${congId}/visits/${id}`, { method: "DELETE", headers: authHeaders() });
+      if (!res.ok) throw new Error(es["Error al eliminar"]);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["visits", congId] }); },
     onError: (e) => {
-      const msg = isNetworkError(e) ? "Sin conexión. Intente más tarde." : (e as Error).message;
-      Alert.alert("Error", msg);
+      const msg = isNetworkError(e) ? es["Sin conexión. Intente más tarde."] : (e as Error).message;
+      Alert.alert(es["Error"], msg);
     },
   });
 
   function handleCreate() {
-    if (!speakerId || !fecha.trim()) { Alert.alert("Error", "Falante y fecha requeridos"); return; }
+    if (!speakerId || !fecha.trim()) { Alert.alert(es["Error"], es["Falante y fecha requeridos"]); return; }
     create.mutate({ speaker_id: speakerId, fecha: fecha.trim(), notas: notas || undefined });
   }
 
   function getSpeakerName(id: string): string {
-    return speakers.data?.find((s) => s.id === id)?.nombre ?? "Desconocido";
+    return speakers.data?.find((s) => s.id === id)?.nombre ?? es["Desconocido"];
   }
 
   const filtered = (visits.data ?? []).filter(
@@ -85,9 +84,9 @@ export default function VisitsScreen() {
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>Visitas de falantes</Text>
+      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Visitas de falantes"]}</Text>
 
-      <Button title={showForm ? "Cancelar" : "+ Nueva visita"} onPress={() => setShowForm(!showForm)} />
+      <Button title={showForm ? es["Cancelar"] : `+ ${es["Nueva visita"]}`} onPress={() => setShowForm(!showForm)} />
 
       {showForm && (
         <View style={{ gap: 8, padding: 12, backgroundColor: "#f5f5f5", borderRadius: 8 }}>
@@ -95,19 +94,19 @@ export default function VisitsScreen() {
             renderItem={({ item }) => (
               <Button title={item.nombre} onPress={() => setSpeakerId(item.id)} color={speakerId === item.id ? "#1a5276" : "#ccc"} />
             )} />
-          <TextInput placeholder="Fecha (YYYY-MM-DD)" value={fecha} onChangeText={setFecha} style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }} />
-          <TextInput placeholder="Notas (opcional)" value={notas} onChangeText={setNotas} style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }} />
-          <Button title={create.isPending ? "Creando..." : "Crear visita"} onPress={handleCreate} disabled={create.isPending} />
+          <TextInput placeholder={es["Fecha (YYYY-MM-DD)"]} value={fecha} onChangeText={setFecha} style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }} />
+          <TextInput placeholder={es["Notas (opcional)"]} value={notas} onChangeText={setNotas} style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }} />
+          <Button title={create.isPending ? es["Creando..."] : es["Crear visita"]} onPress={handleCreate} disabled={create.isPending} />
         </View>
       )}
 
-      <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar por falante o fecha..." />
+      <SearchBar value={search} onChangeText={setSearch} placeholder={es["Buscar por falante o fecha..."]} />
 
       {visits.isLoading ? <SkeletonRow lines={4} /> : null}
 
       {visits.isError ? (
         <Text style={{ color: "#e74c3c", textAlign: "center" }}>
-          {isNetworkError(visits.error) ? "Sin conexión" : "Error al cargar"}
+          {isNetworkError(visits.error) ? es["Sin conexión"] : es["Error al cargar"]}
         </Text>
       ) : null}
 
@@ -123,9 +122,9 @@ export default function VisitsScreen() {
               </Text>
             </View>
             <Button title="X" onPress={() => {
-              Alert.alert("Eliminar", "¿Eliminar esta visita?", [
-                { text: "Cancelar" },
-                { text: "Eliminar", onPress: () => del.mutate(item.id) },
+              Alert.alert(es["Eliminar"], es["¿Eliminar esta visita?"], [
+                { text: es["Cancelar"] },
+                { text: es["Eliminar"], onPress: () => del.mutate(item.id) },
               ]);
             }} />
           </View>

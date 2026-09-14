@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Button, FlatList, Text, TextInput, View, Alert } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
-import { API_URL, isNetworkError } from "../../lib/api";
+import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
 import { SearchBar } from "../../components/SearchBar";
 import { SkeletonRow } from "../../components/Skeleton";
 import es from "../../i18n/es.json";
@@ -23,8 +22,7 @@ const CARGO_LABELS: Record<string, string> = {
 };
 
 export default function PublishersScreen() {
-  const { user, token } = useAuth();
-  const congId = getCongregationId(user);
+  const congId = getCongregationId();
   const queryClient = useQueryClient();
   const [nombre, setNombre] = useState("");
   const [sexo, setSexo] = useState<"M" | "F">("M");
@@ -37,7 +35,7 @@ export default function PublishersScreen() {
     queryKey: ["publishers", congId],
     queryFn: async () => {
       const res = await fetch(`${API_URL}/c/${congId}/publishers`, {
-        headers: authHeaders(token),
+        headers: authHeaders(),
       });
       const body = await res.json();
       return (body.publishers ?? []) as Publisher[];
@@ -48,7 +46,7 @@ export default function PublishersScreen() {
     mutationFn: async (data: { nombre: string; sexo: string; cargo: string; telefono?: string }) => {
       const res = await fetch(`${API_URL}/c/${congId}/publishers`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders(token) },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
       });
       const body = await res.json();
@@ -71,7 +69,7 @@ export default function PublishersScreen() {
     mutationFn: async (id: string) => {
       const res = await fetch(`${API_URL}/c/${congId}/publishers/${id}`, {
         method: "DELETE",
-        headers: authHeaders(token),
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Error al eliminar");
     },

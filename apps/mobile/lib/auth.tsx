@@ -98,15 +98,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
-
-// Helper: get auth headers
-export function authHeaders(token: string | null): Record<string, string> {
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
-
-// Helper: get congregation ID from auth (required — no fallback)
-export function getCongregationId(user: AuthUser | null): string {
-  if (!user?.congregationId) throw new Error("No hay sesión activa. Inicie sesión primero.");
-  return user.congregationId;
-}

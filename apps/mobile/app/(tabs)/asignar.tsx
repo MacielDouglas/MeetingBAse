@@ -4,10 +4,10 @@
 import { useState } from "react";
 import { Button, FlatList, ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth, getCongregationId } from "../../lib/auth";
 import es from "../../i18n/es.json";
 import {
   assignPart,
+  getCongregationId,
   getPrayers,
   getPublisherHistory,
   getUnavailability,
@@ -22,8 +22,7 @@ import { usePrograma } from "../../hooks/usePrograma";
 import { usePublishers } from "../../hooks/usePublishers";
 
 export default function Asignar() {
-  const { user, token } = useAuth();
-  const congId = getCongregationId(user);
+  const congId = getCongregationId();
   const { meetings, offline } = usePrograma(congId);
   const client = useQueryClient();
   const [meetingId, setMeetingId] = useState<string | null>(null);
@@ -42,7 +41,7 @@ export default function Asignar() {
   const meeting = meetings.find((m) => m.id === meetingId) ?? null;
   const part = meeting?.parts.find((p) => p.id === partId) ?? null;
 
-  const pubs = usePublishers(congId, token);
+  const pubs = usePublishers(congId);
   const publishers = pubs.data ?? [];
 
   // Indisponíveis na data da reunião: fora dos pickers (a API também avisa).

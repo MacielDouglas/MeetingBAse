@@ -97,44 +97,6 @@ export interface PublishResult {
   persistencia?: "neon" | "memoria";
 }
 
-export interface MeetingPartItem {
-  id: string;
-  orden: number;
-  titulo: string;
-  sala: string;
-}
-
-export interface MeetingListItem {
-  id: string;
-  fecha: string;
-  tipo: string;
-  semana_label?: string | null;
-  estado: string;
-  sala: string;
-  parts_count: number;
-  parts: MeetingPartItem[];
-}
-
-export interface MeetingsResult {
-  meetings: MeetingListItem[];
-  persistencia?: "neon" | "memoria";
-}
-
-export async function getMeetings(congregationId = getCongregationId()): Promise<MeetingsResult> {
-  const res = await fetch(`${API_URL}/c/${congregationId}/meetings`, {
-    headers: authHeaders(),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(toErrorMessage(body, "Error al cargar el programa"));
-  return body as MeetingsResult;
-}
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export function isUuid(v: string): boolean {
-  return UUID_RE.test(v.trim());
-}
-
 export async function getSync(
   congregationId = getCongregationId(),
   since?: string

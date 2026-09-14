@@ -5,10 +5,10 @@
 import { useState } from "react";
 import { Alert, Button, FlatList, Text, TextInput, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth, getCongregationId } from "../../lib/auth";
 import {
   createUnavailability,
   deleteUnavailability,
+  getCongregationId,
   getUnavailability,
   isNetworkError,
 } from "../../lib/api";
@@ -16,15 +16,14 @@ import { usePublishers } from "../../hooks/usePublishers";
 import es from "../../i18n/es.json";
 
 export default function AusenciasScreen() {
-  const { user, token } = useAuth();
-  const congId = getCongregationId(user);
+  const congId = getCongregationId();
   const client = useQueryClient();
   const [publisherId, setPublisherId] = useState<string | null>(null);
   const [inicio, setInicio] = useState("");
   const [fin, setFin] = useState("");
   const [motivo, setMotivo] = useState("");
 
-  const { data: publishers } = usePublishers(congId, token);
+  const { data: publishers } = usePublishers(congId);
   const list = useQuery({
     queryKey: ["unavailability", congId],
     queryFn: () => getUnavailability(congId),

@@ -13,7 +13,7 @@ export default function ProfileScreen() {
 
   async function handleSave() {
     if (!nombre.trim()) {
-      Alert.alert("Error", "El nombre es requerido");
+      Alert.alert(es["Error"], es["El nombre es requerido"]);
       return;
     }
     setLoading(true);
@@ -23,14 +23,14 @@ export default function ProfileScreen() {
       if (email.trim() !== user?.email) data.email = email.trim();
       if (password.trim()) data.password = password.trim();
       if (Object.keys(data).length === 0) {
-        Alert.alert("Info", "No hay cambios para guardar");
+        Alert.alert(es["Info"], es["No hay cambios para guardar"]);
         return;
       }
       await updateProfile(data);
-      Alert.alert("Éxito", "Perfil actualizado");
+      Alert.alert(es["Éxito"], es["Perfil actualizado"]);
       setPassword("");
     } catch (e) {
-      Alert.alert("Error", (e as Error).message);
+      Alert.alert(es["Error"], (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export default function ProfileScreen() {
         keyboardType="email-address"
       />
 
-      <Text style={s.title}>Nueva contraseña (dejar vacío para no cambiar)</Text>
+      <Text style={s.title}>{es["Nueva contraseña (dejar vacío para no cambiar)"]}</Text>
       <TextInput
         value={password}
         onChangeText={setPassword}
@@ -64,12 +64,12 @@ export default function ProfileScreen() {
       />
 
       <View style={s.info}>
-        <Text style={s.label}>Rol: {user?.rol ?? "—"}</Text>
-        <Text style={s.label}>Congregación: {user?.congregationId ?? "—"}</Text>
+        <Text style={s.label}>{es["Rol"]}: {user?.rol ?? "—"}</Text>
+        <Text style={s.label}>{es["Congregación"]}: {user?.congregationId ?? "—"}</Text>
       </View>
 
       <Pressable onPress={handleSave} style={s.btn} disabled={loading}>
-        <Text style={s.btnText}>{loading ? "Guardando..." : "Guardar"}</Text>
+        <Text style={s.btnText}>{loading ? es["Guardando..."] : es["Guardar"]}</Text>
       </Pressable>
     </ScrollView>
   );

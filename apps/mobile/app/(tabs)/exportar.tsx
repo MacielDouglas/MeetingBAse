@@ -4,22 +4,20 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as FileSystem from "expo-file-system/legacy";
-import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
-import { API_URL, isNetworkError } from "../../lib/api";
+import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
 import { SkeletonRow } from "../../components/Skeleton";
 import es from "../../i18n/es.json";
 
 interface Template { id: string; name: string; description: string; }
 
 export default function ExportarScreen() {
-  const { user, token } = useAuth();
-  const congId = getCongregationId(user);
+  const congId = getCongregationId();
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
 
   const templates = useQuery({
     queryKey: ["templates", congId],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/c/${congId}/templates`, { headers: authHeaders(token) });
+      const res = await fetch(`${API_URL}/c/${congId}/templates`, { headers: authHeaders() });
       const body = await res.json();
       return (body.templates ?? []) as Template[];
     },
@@ -29,7 +27,7 @@ export default function ExportarScreen() {
     mutationFn: async (templateId: string) => {
       const res = await fetch(`${API_URL}/c/${congId}/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders(token) },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ template_id: templateId }),
       });
       if (!res.ok) { const body = await res.json(); throw new Error(body.error ?? "Error al generar"); }
@@ -74,7 +72,7 @@ export default function ExportarScreen() {
 
   async function handleExportIcal() {
     try {
-      const res = await fetch(`${API_URL}/c/${congId}/ical`, { headers: authHeaders(token) });
+      const res = await fetch(`${API_URL}/c/${congId}/ical`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Error al exportar iCal");
       const ical = await res.text();
       const fileUri = `${FileSystem.cacheDirectory}meeting-base.ics`;
