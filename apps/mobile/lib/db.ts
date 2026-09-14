@@ -64,6 +64,22 @@ export async function initDb(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_assign_meeting ON assignments(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_warn_meeting ON warnings(meeting_id);
   `);
+  // Migración local: columnas agregadas después del primer release
+  // (CREATE TABLE IF NOT EXISTS no las agrega en instalaciones antiguas).
+  ensureColumn("warnings", "part_id", "TEXT");
+}
+
+function ensureColumn(table: string, column: string, type: string): void {
+  try {
+    const cols = getDb().getAllSync<{ name: string }>(
+      `PRAGMA table_info(${table})`
+    );
+    if (!cols.some((c) => c.name === column)) {
+      getDb().execSync(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
+  } catch {
+    // best-effort: si falla aquí, la query que usa la columna mostrará el error
+  }
 }
 
 // ---------- tipos de lectura ----------
