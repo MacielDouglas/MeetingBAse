@@ -345,6 +345,10 @@ export function buildSyncPayload(
       .map((w) => ({ ...w, part_id: w.part_id ?? null })),
     filtrado: t !== null,
     persistencia,
+    // Todos os IDs atuais (sem filtro de data): o app apaga do SQLite
+    // local as reuniões que não estão mais no servidor (ex. IDs antigos
+    // de uma confirmação anterior — o sync incremental nunca apagava).
+    all_meeting_ids: meetings.map((m) => m.id),
   };
 }
 

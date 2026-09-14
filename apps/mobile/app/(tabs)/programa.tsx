@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
 import { API_URL, isNetworkError } from "../../lib/api";
 import { usePrograma } from "../../hooks/usePrograma";
+import { makePubNameResolver, usePublishers } from "../../hooks/usePublishers";
 import es from "../../i18n/es.json";
 
 function estadoLabel(estado: string): string {
@@ -19,6 +20,8 @@ export default function Programa() {
   const congId = user ? getCongregationId(user) : null;
   const { meetings, offline, lastSync, isPending, isError, error, refetch, isFetching } =
     usePrograma(congId);
+  const { data: publishers } = usePublishers(congId, token);
+  const pubName = makePubNameResolver(publishers ?? []);
   const client = useQueryClient();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
@@ -115,8 +118,8 @@ export default function Programa() {
                     </Text>
                     <Text>
                       {es["Titular"]}:{" "}
-                      {p.titular_id ? p.titular_id.slice(0, 8) : es["Sin asignar"]}
-                      {p.ayudante_id ? ` · ${es["Ayudante"]}: ${p.ayudante_id.slice(0, 8)}` : ""}
+                      {p.titular_id ? pubName(p.titular_id) : es["Sin asignar"]}
+                      {p.ayudante_id ? ` · ${es["Ayudante"]}: ${pubName(p.ayudante_id)}` : ""}
                     </Text>
                     {p.warnings.map((w) => (
                       <Text key={w.id}>⚠ {w.mensaje_es}</Text>

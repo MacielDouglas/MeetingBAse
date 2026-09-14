@@ -3,23 +3,16 @@
 
 import { useState } from "react";
 import { Button, FlatList, ScrollView, Text, View } from "react-native";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth, getCongregationId } from "../../lib/auth";
 import es from "../../i18n/es.json";
 import {
-  API_URL,
   assignPart,
   isNetworkError,
   type AssignResult,
 } from "../../lib/api";
 import { usePrograma } from "../../hooks/usePrograma";
-
-interface Publisher {
-  id: string;
-  nombre: string;
-  sexo: string;
-  cargo: string;
-}
+import { usePublishers } from "../../hooks/usePublishers";
 
 export default function Asignar() {
   const { user, token } = useAuth();
@@ -36,17 +29,7 @@ export default function Asignar() {
   const meeting = meetings.find((m) => m.id === meetingId) ?? null;
   const part = meeting?.parts.find((p) => p.id === partId) ?? null;
 
-  const pubs = useQuery({
-    queryKey: ["publishers", congId],
-    queryFn: async () => {
-      const res = await fetch(`${API_URL}/c/${congId}/publishers`, {
-        headers: authHeaders(token),
-      });
-      const body = await res.json();
-      return (body.publishers ?? []) as Publisher[];
-    },
-  });
-
+  const pubs = usePublishers(congId, token);
   const publishers = pubs.data ?? [];
 
   const mut = useMutation({
@@ -62,9 +45,17 @@ export default function Asignar() {
     },
     onError: (e) => {
       setResult(null);
-      setFormError(
-        isNetworkError(e) ? es["Necesitas conexión para asignar"] : (e as Error).message
-      );
+      const msg = (e as Error).message;
+      if (isNetworkError(e)) {
+        setFormError(es["Necesitas conexión para asignar"]);
+      } else if (/no encontrada/i.test(msg)) {
+        // Parte com ID antigo (lista local desatualizada): re-sincroniza
+        // para limpar e mostra dica.
+        setFormError(`${msg} — sincronice el Programa e intente de nuevo`);
+        client.invalidateQueries({ queryKey: ["programa", congId] });
+      } else {
+        setFormError(msg);
+      }
     },
   });
 

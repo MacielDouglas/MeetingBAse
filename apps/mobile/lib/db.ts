@@ -206,6 +206,41 @@ export async function saveSyncPayload(
       now,
       now
     );
+    // Reconciliação: apaga do SQLite local as reuniões que não existem
+    // mais no servidor (IDs fantasmas de confirmações antigas). Só quando
+    // o payload veio do Neon (autoritativo); nunca no fallback de memória,
+    // que pode estar incompleto (ex. API recém-reiniciada).
+    const keepIds = payload.all_meeting_ids;
+    if (payload.persistencia === "neon" && Array.isArray(keepIds)) {
+      if (keepIds.length === 0) {
+        d.runSync("DELETE FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?)", congregationId);
+        d.runSync("DELETE FROM assignments WHERE congregation_id = ?", congregationId);
+        d.runSync("DELETE FROM warnings WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?)", congregationId);
+        d.runSync("DELETE FROM meetings WHERE congregation_id = ?", congregationId);
+      } else {
+        const ph = keepIds.map(() => "?").join(",");
+        d.runSync(
+          `DELETE FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ? AND id NOT IN (${ph}))`,
+          congregationId,
+          ...keepIds
+        );
+        d.runSync(
+          `DELETE FROM assignments WHERE congregation_id = ? AND meeting_id NOT IN (${ph})`,
+          congregationId,
+          ...keepIds
+        );
+        d.runSync(
+          `DELETE FROM warnings WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ? AND id NOT IN (${ph}))`,
+          congregationId,
+          ...keepIds
+        );
+        d.runSync(
+          `DELETE FROM meetings WHERE congregation_id = ? AND id NOT IN (${ph})`,
+          congregationId,
+          ...keepIds
+        );
+      }
+    }
   });
   return now;
 }

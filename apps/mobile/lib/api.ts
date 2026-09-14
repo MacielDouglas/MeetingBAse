@@ -330,6 +330,7 @@ export interface SyncPayload {
   warnings: SyncWarning[];
   filtrado: boolean;
   persistencia?: "neon" | "memoria";
+  all_meeting_ids?: string[];
 }
 
 export interface AssignWarning {
