@@ -5,11 +5,10 @@ import {
   listMemWarnings,
 } from "./assignStore.js";
 import {
-  fetchNeonSyncData,
   type AssignRow,
-  type SyncData,
   type WarningRow,
 } from "./repoAssign.js";
+import { fetchNeonSyncData, type SyncData } from "./repoSyncData.js";
 import type { ListedMeeting } from "./repoNeon.js";
 import { listPrayers, type Prayer } from "./prayersStore.js";
 import { listUnavailability, type Unavailability } from "./unavailabilityStore.js";
