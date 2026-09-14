@@ -28,6 +28,7 @@ export interface EligibilityInput {
   ayudanteYaAsignadoEstaSemana?: boolean;
   titularIndisponible?: boolean;
   ayudanteIndisponible?: boolean;
+  titularRepitioSemanaPasada?: boolean;
 }
 
 export interface EligibilityWarning {
@@ -153,6 +154,15 @@ export function checkEligibility(input: EligibilityInput): {
     warnings.push({
       tipo: "ayudante_indisponible",
       mensajeEs: "El ayudante marcó indisponibilidad para esta fecha",
+      duro: false,
+    });
+  }
+
+  // Suave: titular teve a mesma parte na semana passada (rotação).
+  if (input.titularRepitioSemanaPasada) {
+    warnings.push({
+      tipo: "repeticion_parte",
+      mensajeEs: "Ya tuvo esta misma parte la semana pasada",
       duro: false,
     });
   }

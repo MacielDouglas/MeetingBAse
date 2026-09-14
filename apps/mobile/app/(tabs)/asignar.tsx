@@ -9,10 +9,13 @@ import es from "../../i18n/es.json";
 import {
   assignPart,
   getPrayers,
+  getPublisherHistory,
   getUnavailability,
   isNetworkError,
   savePrayer,
+  suggestCandidates,
   type AssignResult,
+  type PublisherHistory,
   type SyncPrayer,
 } from "../../lib/api";
 import { usePrograma } from "../../hooks/usePrograma";
@@ -34,6 +37,7 @@ export default function Asignar() {
     final: null,
   });
   const [prayerMsg, setPrayerMsg] = useState<string | null>(null);
+  const [suggestMsg, setSuggestMsg] = useState<string | null>(null);
 
   const meeting = meetings.find((m) => m.id === meetingId) ?? null;
   const part = meeting?.parts.find((p) => p.id === partId) ?? null;
@@ -88,8 +92,7 @@ export default function Asignar() {
     return getPubName(pr.publisher_id);
   }
 
-  const mut = useMutation({
-    mutationFn: () =>
+  const mut = useMutation({    mutationFn: () =>
       assignPart(congId, partId as string, {
         titular_id: titularId as string,
         ayudante_id: ayudanteId,
@@ -137,6 +140,31 @@ export default function Asignar() {
     if (!id) return "";
     return publishers.find((p) => p.id === id)?.nombre ?? "Desconocido";
   }
+
+  // Fase 13: sugestão automática de titular + historial do selecionado.
+  const suggest = useMutation({
+    mutationFn: () => suggestCandidates(congId, partId as string),
+    onSuccess: (list) => {
+      if (list.length === 0) {
+        setSuggestMsg(es["Sin candidatos"]);
+        return;
+      }
+      setTitularId(list[0].id);
+      setSuggestMsg(list.slice(0, 3).map((c) => `${c.nombre} (${c.motivo})`).join(" · "));
+    },
+    onError: (e) => {
+      setSuggestMsg((e as Error).message);
+    },
+  });
+
+  const history = useQuery({
+    queryKey: ["history", congId, titularId],
+    queryFn: () => getPublisherHistory(congId, titularId as string),
+    enabled: !!congId && !!titularId && !offline,
+    retry: 1,
+    staleTime: 30_000,
+  });
+  const hist: PublisherHistory | undefined = history.data;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
@@ -189,6 +217,17 @@ export default function Asignar() {
           </Text>
 
           <Text style={{ fontWeight: "bold" }}>{es["Titular"]}</Text>
+          <Button
+            title={suggest.isPending ? es["Sugiriendo..."] : es["Sugerir"]}
+            onPress={() => {
+              setSuggestMsg(null);
+              suggest.mutate();
+            }}
+            disabled={suggest.isPending || offline}
+          />
+          {suggestMsg ? (
+            <Text style={{ fontSize: 12, color: "#666" }}>{suggestMsg}</Text>
+          ) : null}
           <FlatList
             data={available}
             keyExtractor={(item) => item.id}
@@ -205,6 +244,7 @@ export default function Asignar() {
           {titularId ? (
             <Text style={{ fontSize: 12, color: "#666" }}>
               Seleccionado: {getPubName(titularId)}
+              {hist ? ` · ${hist.total} designaciones${hist.last_fecha ? `, última: ${hist.last_fecha}` : ""}` : ""}
             </Text>
           ) : null}
 

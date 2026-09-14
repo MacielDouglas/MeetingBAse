@@ -33,6 +33,7 @@ import {
 import type { ListedMeeting } from "./repoNeon.js";
 import type { Prayer } from "./prayersStore.js";
 import { unavailablePublisherIds, type Unavailability } from "./unavailabilityStore.js";
+import { titularRepeatedLastWeek } from "./suggest.js";
 
 // Fase 2B — orquestra assign/publish/sync.
 // Neon primeiro (se há DATABASE_URL), memória depois.
@@ -178,6 +179,7 @@ export async function assignPart(
     ayudanteIndisponible: ayudanteId
       ? (await unavailablePublisherIds(congId, b.meetingFecha)).has(ayudanteId)
       : false,
+    titularRepitioSemanaPasada: await titularRepeatedLastWeek(congId, b.meetingId, b.part.tipoClave, titularId),
   });
   const duro = warnings.find((w) => w.duro);
   if (duro) return { status: 422, body: { error: duro.mensajeEs } };
