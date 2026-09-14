@@ -233,6 +233,12 @@ export function listMemDetailed(congregationId: string): ListedMeeting[] {
     estado: m.estado,
     sala: "A" as const,
     updated_at: now,
+    hora_inicio: m.hora_inicio ?? null,
+    lectura_semanal: m.lectura_semanal ?? null,
+    titulo_atalaya: m.titulo_atalaya ?? null,
+    cancion_inicial: m.cancion_inicial ?? null,
+    cancion_intermedia: m.cancion_intermedia ?? null,
+    cancion_final: m.cancion_final ?? null,
     parts_count: m.parts.length,
     parts: m.parts.map((x) => ({
       id: x.id,
@@ -243,6 +249,8 @@ export function listMemDetailed(congregationId: string): ListedMeeting[] {
       sala: "A" as const,
       requiere_ayudante: x.requiereAyudante,
       needs_review: x.needsReview ?? false,
+      duracion_min: x.duracionMin ?? null,
+      hora_inicio: x.horaInicio ?? null,
     })),
   }));
 }

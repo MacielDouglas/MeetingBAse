@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { assignBody, congIdParam } from "../lib/validators.js";
+import { assignBody, congIdParam, meetingParam, prayerBody } from "../lib/validators.js";
 import { listMeetings } from "../lib/repoNeon.js";
 import { listMemDetailed } from "../lib/assignStore.js";
+import { listPrayers, upsertPrayer } from "../lib/prayersStore.js";
 import { assignPart, publishMeetingFlow } from "../lib/assignFlow.js";
 
 // Fase 2B: GET real (contrato 2A preservado) + assign transacional
@@ -42,8 +43,7 @@ export async function meetingsRoutes(app: FastifyInstance) {
     return reply.code(out.status).send(out.body);
   });
 
-  app.post("/c/:id/parts/:partId/assign", async (req, reply) => {
-    const p = z
+  app.post("/c/:id/parts/:partId/assign", async (req, reply) => {    const p = z
       .object({
         id: z.string().uuid({ message: uuidMsg }),
         partId: z.string().uuid({ message: uuidMsg }),
@@ -65,5 +65,22 @@ export async function meetingsRoutes(app: FastifyInstance) {
       ayudante
     );
     return reply.code(out.status).send(out.body);
+  });
+
+  // Fase 10: oraciones (inicial/final) por reunión.
+  app.get("/c/:id/meetings/:mid/prayers", async (req, reply) => {
+    const p = meetingParam.safeParse(req.params);
+    if (!p.success) return reply.code(400).send({ error: "Datos inválidos" });
+    const prayers = await listPrayers(p.data.id, p.data.mid);
+    return { prayers };
+  });
+
+  app.post("/c/:id/meetings/:mid/prayers", async (req, reply) => {
+    const p = meetingParam.safeParse(req.params);
+    if (!p.success) return reply.code(400).send({ error: "Datos inválidos" });
+    const body = prayerBody.safeParse(req.body ?? {});
+    if (!body.success) return reply.code(400).send({ error: body.error.issues[0].message });
+    const prayer = await upsertPrayer(p.data.id, p.data.mid, body.data.tipo, body.data.publisher_id);
+    return reply.code(201).send({ prayer });
   });
 }

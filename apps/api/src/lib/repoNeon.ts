@@ -24,6 +24,7 @@ export interface MeetingDraftIn {
   cancion_final?: number | null;
   semana_label?: string | null;
   estado: string;
+  hora_inicio?: string | null;
   parts: {
     id?: string;
     orden: number;
@@ -34,6 +35,7 @@ export interface MeetingDraftIn {
     duracionMin?: number;
     requiereAyudante: boolean;
     needsReview?: boolean;
+    horaInicio?: string | null;
     sala: "A";
   }[];
 }
@@ -48,6 +50,12 @@ export interface ListedMeeting {
   estado: string;
   sala: "A";
   updated_at: string;
+  hora_inicio: string | null;
+  lectura_semanal: string | null;
+  titulo_atalaya: string | null;
+  cancion_inicial: number | null;
+  cancion_intermedia: number | null;
+  cancion_final: number | null;
   parts_count: number;
   parts: {
     id: string;
@@ -58,6 +66,8 @@ export interface ListedMeeting {
     sala: "A";
     requiere_ayudante: boolean;
     needs_review: boolean;
+    duracion_min: number | null;
+    hora_inicio: string | null;
   }[];
 }
 
@@ -98,6 +108,7 @@ export async function saveConfirm(
         cancionFinal: m.cancion_final ?? null,
         semanaLabel: m.semana_label ?? null,
         estado: "draft",
+        horaInicio: m.hora_inicio ?? null,
         updatedAt: new Date(),
       });
       done.push(m.id);
@@ -115,6 +126,7 @@ export async function saveConfirm(
           sala: "A",
           requiereAyudante: p.requiereAyudante,
           needsReview: p.needsReview ?? false,
+          horaInicio: p.horaInicio ?? null,
         });
       }
     }
@@ -174,6 +186,12 @@ export async function listMeetings(
         estado: m.estado,
         sala: "A",
         updated_at: iso(m.updatedAt),
+        hora_inicio: m.horaInicio ?? null,
+        lectura_semanal: m.lecturaSemanal ?? null,
+        titulo_atalaya: m.tituloAtalaya ?? null,
+        cancion_inicial: m.cancionInicial ?? null,
+        cancion_intermedia: m.cancionIntermedia ?? null,
+        cancion_final: m.cancionFinal ?? null,
         parts_count: ps.length,
         parts: ps.map((p) => ({
           id: p.id,
@@ -184,6 +202,8 @@ export async function listMeetings(
           sala: "A",
           requiere_ayudante: p.requiereAyudante,
           needs_review: p.needsReview,
+          duracion_min: p.duracionMin ?? null,
+          hora_inicio: p.horaInicio ?? null,
         })),
       });
     }

@@ -3,13 +3,16 @@
 
 import { useState } from "react";
 import { Button, FlatList, ScrollView, Text, View } from "react-native";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth, getCongregationId } from "../../lib/auth";
 import es from "../../i18n/es.json";
 import {
   assignPart,
+  getPrayers,
   isNetworkError,
+  savePrayer,
   type AssignResult,
+  type SyncPrayer,
 } from "../../lib/api";
 import { usePrograma } from "../../hooks/usePrograma";
 import { usePublishers } from "../../hooks/usePublishers";
@@ -25,12 +28,53 @@ export default function Asignar() {
   const [ayudanteId, setAyudanteId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [result, setResult] = useState<AssignResult | null>(null);
+  const [prayerSel, setPrayerSel] = useState<{ inicial: string | null; final: string | null }>({
+    inicial: null,
+    final: null,
+  });
+  const [prayerMsg, setPrayerMsg] = useState<string | null>(null);
 
   const meeting = meetings.find((m) => m.id === meetingId) ?? null;
   const part = meeting?.parts.find((p) => p.id === partId) ?? null;
 
   const pubs = usePublishers(congId, token);
   const publishers = pubs.data ?? [];
+
+  // Oraciones actuales: del servidor si hay red, si no del sync local.
+  const serverPrayers = useQuery({
+    queryKey: ["prayers", congId, meetingId],
+    queryFn: () => getPrayers(congId, meetingId as string),
+    enabled: !!congId && !!meetingId && !offline,
+    retry: 1,
+    staleTime: 30_000,
+  });
+  const prayers: SyncPrayer[] =
+    serverPrayers.data ??
+    ((meeting?.prayers ?? []).map((p) => ({
+      id: p.id,
+      meeting_id: meetingId as string,
+      tipo: p.tipo as "inicial" | "final",
+      publisher_id: p.publisher_id,
+    })) as SyncPrayer[]);
+
+  const prayerMut = useMutation({
+    mutationFn: (input: { tipo: "inicial" | "final"; publisher_id: string | null }) =>
+      savePrayer(congId, meetingId as string, input),
+    onSuccess: async () => {
+      setPrayerMsg(es["Oración guardada"]);
+      await client.invalidateQueries({ queryKey: ["prayers", congId, meetingId] });
+      await client.invalidateQueries({ queryKey: ["programa", congId] });
+    },
+    onError: (e) => {
+      setPrayerMsg((e as Error).message);
+    },
+  });
+
+  function prayerName(tipo: "inicial" | "final"): string {
+    const pr = prayers.find((p) => p.tipo === tipo);
+    if (!pr?.publisher_id) return es["Sin asignar"];
+    return getPubName(pr.publisher_id);
+  }
 
   const mut = useMutation({
     mutationFn: () =>
@@ -178,6 +222,41 @@ export default function Asignar() {
             onPress={enviar}
             disabled={mut.isPending || offline}
           />
+        </View>
+      ) : null}
+
+      {meeting ? (
+        <View style={{ gap: 8, marginTop: 8 }}>
+          <Text style={{ fontWeight: "bold" }}>Oraciones</Text>
+          {(["inicial", "final"] as const).map((tipo) => (
+            <View key={tipo} style={{ gap: 4 }}>
+              <Text>
+                {tipo === "final" ? es["Oración final"] : es["Oración inicial"]}:{" "}
+                {prayerName(tipo)}
+              </Text>
+              <FlatList
+                data={publishers}
+                keyExtractor={(item) => `${tipo}-${item.id}`}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                renderItem={({ item }) => (
+                  <Button
+                    title={item.nombre}
+                    onPress={() => setPrayerSel((s) => ({ ...s, [tipo]: item.id }))}
+                    color={prayerSel[tipo] === item.id ? "#1a5276" : "#ccc"}
+                  />
+                )}
+              />
+              <Button
+                title={prayerMut.isPending ? es["Asignando..."] : es["Guardar oración"]}
+                onPress={() =>
+                  prayerMut.mutate({ tipo, publisher_id: prayerSel[tipo] })
+                }
+                disabled={prayerMut.isPending || offline || !prayerSel[tipo]}
+              />
+            </View>
+          ))}
+          {prayerMsg ? <Text>{prayerMsg}</Text> : null}
         </View>
       ) : null}
 

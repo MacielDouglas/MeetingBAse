@@ -92,11 +92,26 @@ export default function Programa() {
             <Text style={{ fontWeight: "bold" }}>
               {m.semana_label ? `${m.semana_label} · ` : ""}
               {m.fecha}
+              {m.hora_inicio ? ` · ${m.hora_inicio}` : ""}
             </Text>
             <Text>
               {m.tipo} · {es["Sala A"]} · {m.parts.length} {es["partes"]} ·{" "}
               {estadoLabel(m.estado)}
             </Text>
+            {m.lectura_semanal ? <Text>{m.lectura_semanal}</Text> : null}
+            {m.titulo_atalaya ? <Text>{m.titulo_atalaya}</Text> : null}
+            {m.prayers.length > 0 ? (
+              <Text>
+                {m.prayers
+                  .map(
+                    (pr) =>
+                      `${pr.tipo === "final" ? es["Oración final"] : es["Oración inicial"]}: ${
+                        pr.publisher_id ? pubName(pr.publisher_id) : es["Sin asignar"]
+                      }`
+                  )
+                  .join(" · ")}
+              </Text>
+            ) : null}
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Button
                 title={open ? es["Ocultar partes"] : es["Ver partes"]}
@@ -114,7 +129,9 @@ export default function Programa() {
               ? m.parts.map((p) => (
                   <View key={p.id} style={{ paddingLeft: 12, paddingVertical: 4, gap: 2 }}>
                     <Text>
+                      {p.hora_inicio ? `${p.hora_inicio} · ` : ""}
                       {p.orden}. {p.titulo}
+                      {p.duracion_min ? ` (${p.duracion_min} min)` : ""}
                     </Text>
                     <Text>
                       {es["Titular"]}:{" "}

@@ -90,5 +90,9 @@
   "Documento generado": "Documento generado",
   "Perfil": "Perfil",
   "Persistencia": "Persistencia",
-  "Solo en memoria (reiniciar la API lo borra)": "Solo en memoria (reiniciar la API lo borra)"
+  "Solo en memoria (reiniciar la API lo borra)": "Solo en memoria (reiniciar la API lo borra)",
+  "Oración inicial": "Oración inicial",
+  "Oración final": "Oración final",
+  "Guardar oración": "Guardar oración",
+  "Oración guardada": "Oración guardada"
 }

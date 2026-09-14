@@ -9,6 +9,7 @@ import {
   warnings,
 } from "../../../../packages/db/schema.js";
 import { listMeetings, type ListedMeeting } from "./repoNeon.js";
+import { listPrayers, type Prayer } from "./prayersStore.js";
 
 // Fase 2B — operações Neon para assign/publish/sync.
 // Filtro app-level obrigatório (RLS ainda comentado).
@@ -309,6 +310,7 @@ export interface SyncData {
   meetings: ListedMeeting[];
   assignments: AssignRow[];
   warnings: WarningRow[];
+  prayers: Prayer[];
 }
 
 // Dados brutos do sync (filtro de data aplicado no builder,
@@ -329,6 +331,7 @@ export async function fetchNeonSyncData(
     const meetingIds = new Set(listed.meetings.map((m) => m.id));
     const wAll = await db.select().from(warnings);
     const wRows = wAll.filter((w) => meetingIds.has(w.meetingId));
+    const prayers = await listPrayers(congregationId);
     return {
       meetings: listed.meetings,
       assignments: aRows.map((a) => ({
@@ -349,6 +352,7 @@ export async function fetchNeonSyncData(
         mensaje_es: w.mensajeEs,
         created_at: iso(w.createdAt),
       })),
+      prayers,
     };
   } catch {
     return null;

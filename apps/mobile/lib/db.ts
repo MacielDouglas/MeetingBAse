@@ -24,7 +24,13 @@ export async function initDb(): Promise<void> {
       tipo TEXT NOT NULL,
       semana_label TEXT,
       estado TEXT NOT NULL,
-      sala TEXT NOT NULL DEFAULT 'A'
+      sala TEXT NOT NULL DEFAULT 'A',
+      hora_inicio TEXT,
+      lectura_semanal TEXT,
+      titulo_atalaya TEXT,
+      cancion_inicial INTEGER,
+      cancion_intermedia INTEGER,
+      cancion_final INTEGER
     );
     CREATE TABLE IF NOT EXISTS parts (
       id TEXT PRIMARY KEY NOT NULL,
@@ -35,7 +41,9 @@ export async function initDb(): Promise<void> {
       titulo TEXT NOT NULL,
       sala TEXT NOT NULL DEFAULT 'A',
       requiere_ayudante INTEGER NOT NULL DEFAULT 0,
-      needs_review INTEGER NOT NULL DEFAULT 0
+      needs_review INTEGER NOT NULL DEFAULT 0,
+      duracion_min INTEGER,
+      hora_inicio TEXT
     );
     CREATE TABLE IF NOT EXISTS assignments (
       id TEXT PRIMARY KEY NOT NULL,
@@ -60,13 +68,29 @@ export async function initDb(): Promise<void> {
       last_since TEXT,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS prayers (
+      id TEXT PRIMARY KEY NOT NULL,
+      meeting_id TEXT NOT NULL,
+      congregation_id TEXT NOT NULL,
+      tipo TEXT NOT NULL,
+      publisher_id TEXT
+    );
     CREATE INDEX IF NOT EXISTS idx_parts_meeting ON parts(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_assign_meeting ON assignments(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_warn_meeting ON warnings(meeting_id);
+    CREATE INDEX IF NOT EXISTS idx_prayer_meeting ON prayers(meeting_id);
   `);
   // Migración local: columnas agregadas después del primer release
   // (CREATE TABLE IF NOT EXISTS no las agrega en instalaciones antiguas).
   ensureColumn("warnings", "part_id", "TEXT");
+  ensureColumn("meetings", "hora_inicio", "TEXT");
+  ensureColumn("meetings", "lectura_semanal", "TEXT");
+  ensureColumn("meetings", "titulo_atalaya", "TEXT");
+  ensureColumn("meetings", "cancion_inicial", "INTEGER");
+  ensureColumn("meetings", "cancion_intermedia", "INTEGER");
+  ensureColumn("meetings", "cancion_final", "INTEGER");
+  ensureColumn("parts", "duracion_min", "INTEGER");
+  ensureColumn("parts", "hora_inicio", "TEXT");
 }
 
 function ensureColumn(table: string, column: string, type: string): void {
@@ -100,9 +124,17 @@ export interface ProgramaPart {
   sala: string;
   requiere_ayudante: boolean;
   needs_review: boolean;
+  duracion_min: number | null;
+  hora_inicio: string | null;
   titular_id: string | null;
   ayudante_id: string | null;
   warnings: ProgramaWarning[];
+}
+
+export interface ProgramaPrayer {
+  id: string;
+  tipo: string;
+  publisher_id: string | null;
 }
 
 export interface ProgramaMeeting {
@@ -112,7 +144,14 @@ export interface ProgramaMeeting {
   semana_label: string | null;
   estado: string;
   sala: string;
+  hora_inicio: string | null;
+  lectura_semanal: string | null;
+  titulo_atalaya: string | null;
+  cancion_inicial: number | null;
+  cancion_intermedia: number | null;
+  cancion_final: number | null;
   parts: ProgramaPart[];
+  prayers: ProgramaPrayer[];
 }
 
 // ---------- sync ----------
@@ -151,7 +190,7 @@ export async function saveSyncPayload(
     }
     for (const m of payload.meetings ?? []) {
       d.runSync(
-        "INSERT OR REPLACE INTO meetings (id, congregation_id, import_id, fecha, tipo, semana_label, estado, sala) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO meetings (id, congregation_id, import_id, fecha, tipo, semana_label, estado, sala, hora_inicio, lectura_semanal, titulo_atalaya, cancion_inicial, cancion_intermedia, cancion_final) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         str(m.id),
         str(m.congregation_id ?? congregationId, congregationId),
         str((m as { import_id?: unknown }).import_id ?? ""),
@@ -159,12 +198,18 @@ export async function saveSyncPayload(
         str(m.tipo),
         (m.semana_label as string | null) ?? null,
         str(m.estado, "draft"),
-        str((m as { sala?: unknown }).sala ?? "A", "A")
+        str((m as { sala?: unknown }).sala ?? "A", "A"),
+        (m.hora_inicio as string | null) ?? null,
+        (m.lectura_semanal as string | null) ?? null,
+        (m.titulo_atalaya as string | null) ?? null,
+        (m.cancion_inicial as number | null) ?? null,
+        (m.cancion_intermedia as number | null) ?? null,
+        (m.cancion_final as number | null) ?? null
       );
     }
     for (const p of payload.parts ?? []) {
       d.runSync(
-        "INSERT OR REPLACE INTO parts (id, meeting_id, orden, seccion, tipo_clave, titulo, sala, requiere_ayudante, needs_review) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO parts (id, meeting_id, orden, seccion, tipo_clave, titulo, sala, requiere_ayudante, needs_review, duracion_min, hora_inicio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         str(p.id),
         str(p.meeting_id),
         num(p.orden),
@@ -173,7 +218,9 @@ export async function saveSyncPayload(
         str(p.titulo),
         str((p as { sala?: unknown }).sala ?? "A", "A"),
         p.requiere_ayudante ? 1 : 0,
-        p.needs_review ? 1 : 0
+        p.needs_review ? 1 : 0,
+        (p.duracion_min as number | null) ?? null,
+        (p.hora_inicio as string | null) ?? null
       );
     }
     for (const a of payload.assignments ?? []) {
@@ -200,6 +247,16 @@ export async function saveSyncPayload(
         str(w.created_at, now)
       );
     }
+    for (const pr of payload.prayers ?? []) {
+      d.runSync(
+        "INSERT OR REPLACE INTO prayers (id, meeting_id, congregation_id, tipo, publisher_id) VALUES (?, ?, ?, ?, ?)",
+        str(pr.id),
+        str(pr.meeting_id),
+        str(pr.congregation_id ?? congregationId, congregationId),
+        str(pr.tipo),
+        (pr.publisher_id as string | null) ?? null
+      );
+    }
     d.runSync(
       "INSERT OR REPLACE INTO sync_meta (congregation_id, last_since, updated_at) VALUES (?, ?, ?)",
       congregationId,
@@ -216,6 +273,7 @@ export async function saveSyncPayload(
         d.runSync("DELETE FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?)", congregationId);
         d.runSync("DELETE FROM assignments WHERE congregation_id = ?", congregationId);
         d.runSync("DELETE FROM warnings WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?)", congregationId);
+        d.runSync("DELETE FROM prayers WHERE congregation_id = ?", congregationId);
         d.runSync("DELETE FROM meetings WHERE congregation_id = ?", congregationId);
       } else {
         const ph = keepIds.map(() => "?").join(",");
@@ -231,6 +289,11 @@ export async function saveSyncPayload(
         );
         d.runSync(
           `DELETE FROM warnings WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ? AND id NOT IN (${ph}))`,
+          congregationId,
+          ...keepIds
+        );
+        d.runSync(
+          `DELETE FROM prayers WHERE congregation_id = ? AND meeting_id NOT IN (${ph})`,
           congregationId,
           ...keepIds
         );
@@ -257,8 +320,14 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
     semana_label: string | null;
     estado: string;
     sala: string;
+    hora_inicio: string | null;
+    lectura_semanal: string | null;
+    titulo_atalaya: string | null;
+    cancion_inicial: number | null;
+    cancion_intermedia: number | null;
+    cancion_final: number | null;
   }>(
-    "SELECT id, fecha, tipo, semana_label, estado, sala FROM meetings WHERE congregation_id = ? ORDER BY fecha ASC",
+    "SELECT id, fecha, tipo, semana_label, estado, sala, hora_inicio, lectura_semanal, titulo_atalaya, cancion_inicial, cancion_intermedia, cancion_final FROM meetings WHERE congregation_id = ? ORDER BY fecha ASC",
     congregationId
   );
   if (ms.length === 0) return [];
@@ -272,8 +341,10 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
     sala: string;
     requiere_ayudante: number;
     needs_review: number;
+    duracion_min: number | null;
+    hora_inicio: string | null;
   }>(
-    "SELECT id, meeting_id, orden, seccion, tipo_clave, titulo, sala, requiere_ayudante, needs_review FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?) ORDER BY meeting_id, orden ASC",
+    "SELECT id, meeting_id, orden, seccion, tipo_clave, titulo, sala, requiere_ayudante, needs_review, duracion_min, hora_inicio FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?) ORDER BY meeting_id, orden ASC",
     congregationId
   );
   const as = d.getAllSync<{
@@ -298,6 +369,21 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
   );
 
   const byPart = new Map(as.map((a) => [a.part_id, a]));
+  const prs = d.getAllSync<{
+    id: string;
+    meeting_id: string;
+    tipo: string;
+    publisher_id: string | null;
+  }>(
+    "SELECT id, meeting_id, tipo, publisher_id FROM prayers WHERE congregation_id = ?",
+    congregationId
+  );
+  const prayersByMeeting = new Map<string, ProgramaPrayer[]>();
+  for (const pr of prs) {
+    const list = prayersByMeeting.get(pr.meeting_id) ?? [];
+    list.push({ id: pr.id, tipo: pr.tipo, publisher_id: pr.publisher_id });
+    prayersByMeeting.set(pr.meeting_id, list);
+  }
   const warnsByPart = new Map<string, ProgramaWarning[]>();
   for (const w of ws) {
     const k = w.part_id ?? `${w.meeting_id}::${w.publisher_id}`;
@@ -319,6 +405,8 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
       sala: p.sala,
       requiere_ayudante: p.requiere_ayudante === 1,
       needs_review: p.needs_review === 1,
+      duracion_min: p.duracion_min,
+      hora_inicio: p.hora_inicio,
       titular_id: a?.titular_id ?? null,
       ayudante_id: a?.ayudante_id ?? null,
       warnings: warnsByPart.get(p.id) ?? [],
@@ -332,6 +420,13 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
     semana_label: m.semana_label,
     estado: m.estado,
     sala: m.sala,
+    hora_inicio: m.hora_inicio,
+    lectura_semanal: m.lectura_semanal,
+    titulo_atalaya: m.titulo_atalaya,
+    cancion_inicial: m.cancion_inicial,
+    cancion_intermedia: m.cancion_intermedia,
+    cancion_final: m.cancion_final,
     parts: partsByMeeting.get(m.id) ?? [],
+    prayers: prayersByMeeting.get(m.id) ?? [],
   }));
 }

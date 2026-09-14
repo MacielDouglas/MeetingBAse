@@ -47,6 +47,7 @@ export const meetings = pgTable("meetings", {
   semanaLabel: text("semana_label"),
   estado: text("estado").default("draft").notNull(),
   version: integer("version").default(1).notNull(),
+  horaInicio: text("hora_inicio"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({ uq_meeting: uniqueIndex("uq_meeting").on(t.congregationId, t.fecha, t.tipo) }));
 
@@ -63,6 +64,7 @@ export const parts = pgTable("parts", {
   sala: text("sala").default("A").notNull(),
   requiereAyudante: boolean("requiere_ayudante").default(false).notNull(),
   needsReview: boolean("needs_review").default(false).notNull(),
+  horaInicio: text("hora_inicio"),
 }, (t) => ({ uq_part_orden: uniqueIndex("uq_part_orden").on(t.meetingId, t.orden) }));
 
 export const assignments = pgTable("assignments", {
@@ -86,6 +88,16 @@ export const warnings = pgTable("assignment_warnings", {
   reconocidoPor: uuid("reconocido_por"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({ idx_warn_meeting: index("idx_warn_meeting").on(t.meetingId) }));
+
+// Fase 10 — orações (inicial/final) por reunião.
+export const prayers = pgTable("prayers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  meetingId: uuid("meeting_id").notNull(),
+  congregationId: uuid("congregation_id").notNull(),
+  tipo: text("tipo").notNull(),
+  publisherId: uuid("publisher_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({ uq_prayer: uniqueIndex("uq_prayer").on(t.meetingId, t.tipo) }));
 
 // Fase 1 — import jobs (.jwpub upload -> preview -> confirm).
 export const imports = pgTable("imports", {

@@ -14,6 +14,7 @@ export interface PartDraft {
   duracionMin?: number;
   requiereAyudante: boolean;
   needsReview?: boolean;
+  horaInicio?: string;
 }
 
 export type PubKind = "mwb" | "w" | "s34" | "sjj";
@@ -170,8 +171,52 @@ export function mapS34ToParts(row: MwbRow): PartDraft[] {
   ];
 }
 
-// sjj: Cánticos. Cada row es un canto (número, título).
+// Fase 10 — horários. Tenta ler o início da reunião da linha parseada
+// (vários nomes possíveis conforme o parser) e calcula o início de cada
+// parte de forma cumulativa (início + durações). Formato "HH:MM".
+
+const START_KEYS = [
+  "starttime", "start_time", "meeting_starttime", "meeting_start_time",
+  "mwb_starttime", "mwb_start_time", "w_starttime", "w_start_time",
+  "hora_inicio", "hora", "time",
+];
+
+export function parseMeetingStart(row: MwbRow): string | null {
+  for (const k of START_KEYS) {
+    const v = row[k];
+    if (typeof v === "string" && /^\d{1,2}:\d{2}/.test(v.trim())) {
+      const [h, m] = v.trim().split(":");
+      return `${h.padStart(2, "0")}:${m.slice(0, 2)}`;
+    }
+  }
+  return null;
+}
+
+function toMin(hhmm: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})/.exec(hhmm);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+function toHHMM(min: number): string {
+  const h = Math.floor(min / 60) % 24;
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+// Preenche horaInicio de cada parte a partir do início da reunião.
+// Sem horário base, mantém undefined.
+export function applyStartTimes(base: string | null, parts: PartDraft[]): void {
+  const start = base ? toMin(base) : null;
+  if (start === null) return;
+  let acc = start;
+  for (const p of parts) {
+    p.horaInicio = toHHMM(acc);
+    acc += typeof p.duracionMin === "number" ? p.duracionMin : 0;
+  }
+}
 export function mapSjjToParts(row: MwbRow): PartDraft[] {
+  // sjj: Cánticos. Cada row es un canto (número, título).
   const songNum = num(row.sjj_number || row.number);
   const title = str(row.sjj_title || row.title || "Cántico");
   return [

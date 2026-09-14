@@ -288,6 +288,12 @@ export interface SyncMeeting {
   semana_label?: string | null;
   estado: string;
   sala?: string;
+  hora_inicio?: string | null;
+  lectura_semanal?: string | null;
+  titulo_atalaya?: string | null;
+  cancion_inicial?: number | null;
+  cancion_intermedia?: number | null;
+  cancion_final?: number | null;
 }
 
 export interface SyncPart {
@@ -300,6 +306,8 @@ export interface SyncPart {
   sala?: string;
   requiere_ayudante?: boolean;
   needs_review?: boolean;
+  duracion_min?: number | null;
+  hora_inicio?: string | null;
 }
 
 export interface SyncAssignment {
@@ -322,12 +330,21 @@ export interface SyncWarning {
   created_at: string;
 }
 
+export interface SyncPrayer {
+  id: string;
+  meeting_id: string;
+  congregation_id?: string;
+  tipo: "inicial" | "final";
+  publisher_id: string | null;
+}
+
 export interface SyncPayload {
   since: string | null;
   meetings: SyncMeeting[];
   parts: SyncPart[];
   assignments: SyncAssignment[];
   warnings: SyncWarning[];
+  prayers?: SyncPrayer[];
   filtrado: boolean;
   persistencia?: "neon" | "memoria";
   all_meeting_ids?: string[];
@@ -400,6 +417,30 @@ export async function publishMeeting(
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al publicar"));
   return body as PublishResult;
+}
+
+export async function getPrayers(congregationId: string, meetingId: string): Promise<SyncPrayer[]> {
+  const res = await fetch(`${API_URL}/c/${congregationId}/meetings/${meetingId}/prayers`, {
+    headers: authHeaders(),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(toErrorMessage(body, "Error al cargar oraciones"));
+  return ((body as { prayers?: SyncPrayer[] }).prayers ?? []) as SyncPrayer[];
+}
+
+export async function savePrayer(
+  congregationId: string,
+  meetingId: string,
+  input: { tipo: "inicial" | "final"; publisher_id: string | null }
+): Promise<SyncPrayer> {
+  const res = await fetch(`${API_URL}/c/${congregationId}/meetings/${meetingId}/prayers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(input),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(toErrorMessage(body, "Error al guardar oración"));
+  return (body as { prayer: SyncPrayer }).prayer;
 }
 
 // ---------- Congregations ----------

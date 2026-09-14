@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import {
+  applyStartTimes,
   mapMwbToParts,
   mapWatchtowerToParts,
+  parseMeetingStart,
   type PartDraft,
 } from "../../../../packages/db/mapping.js";
 import type { ParsedPub } from "./parsePub.js";
@@ -21,6 +23,7 @@ export interface WeekPreview {
   cancionInicial?: number;
   cancionIntermedia?: number;
   cancionFinal?: number;
+  horaInicio?: string | null;
   parts: (PartDraft & { sala: "A" })[];
 }
 
@@ -44,6 +47,12 @@ export interface ConfirmedMeeting {
   semana_label?: string | null;
   estado: string;
   sala: "A";
+  lectura_semanal?: string | null;
+  titulo_atalaya?: string | null;
+  cancion_inicial?: number | null;
+  cancion_intermedia?: number | null;
+  cancion_final?: number | null;
+  hora_inicio?: string | null;
   parts: (PartDraft & { sala: "A"; id: string })[];
 }
 
@@ -318,6 +327,9 @@ function buildWeeks(parsed: ParsedPub): WeekPreview[] {
   return parsed.rows.map((row, index) => {
     if (parsed.kind === "w") {
       const fecha = String(row.w_study_date ?? "").replaceAll("/", "-");
+      const parts = mapWatchtowerToParts(row).map(toSalaA);
+      const horaInicio = parseMeetingStart(row);
+      applyStartTimes(horaInicio, parts);
       return {
         index,
         fecha,
@@ -326,11 +338,15 @@ function buildWeeks(parsed: ParsedPub): WeekPreview[] {
         tituloAtalaya: String(row.w_study_title ?? ""),
         cancionInicial: numOrUndef(row.w_study_opening_song),
         cancionFinal: numOrUndef(row.w_study_concluding_song),
-        parts: mapWatchtowerToParts(row).map(toSalaA),
+        horaInicio,
+        parts,
       };
     }
     // mwb
     const fecha = String(row.mwb_week_date ?? "").replaceAll("/", "-");
+    const parts = mapMwbToParts(row).map(toSalaA);
+    const horaInicio = parseMeetingStart(row);
+    applyStartTimes(horaInicio, parts);
     return {
       index,
       fecha,
@@ -340,7 +356,8 @@ function buildWeeks(parsed: ParsedPub): WeekPreview[] {
       cancionInicial: numOrUndef(row.mwb_song_first),
       cancionIntermedia: numOrUndef(row.mwb_song_middle),
       cancionFinal: numOrUndef(row.mwb_song_conclude),
-      parts: mapMwbToParts(row).map(toSalaA),
+      horaInicio,
+      parts,
     };
   });
 }

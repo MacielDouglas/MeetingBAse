@@ -26,6 +26,7 @@ export async function syncRoutes(app: FastifyInstance) {
         parts: [],
         assignments: [],
         warnings: [],
+        prayers: [],
         filtrado: false,
         persistencia: "memoria" as const,
       };

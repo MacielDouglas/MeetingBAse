@@ -180,6 +180,7 @@ export async function importsRoutes(app: FastifyInstance) {
       semana_label: w.semanaLabel,
       estado: "draft",
       sala: "A" as const,
+      hora_inicio: w.horaInicio ?? null,
       parts: w.parts.map((p) => ({ ...p, id: randomUUID() })),
     }));
     saveConfirmedMeetings(meetings);

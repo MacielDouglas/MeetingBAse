@@ -20,6 +20,16 @@ export const assignBody = z.object({
   ayudante_id: z.string().uuid({ message: "Ayudante inválido" }).nullable().optional(),
 });
 
+export const meetingParam = z.object({
+  id: z.string().uuid({ message: "Congregación inválida" }),
+  mid: z.string().uuid({ message: "Datos inválidos" }),
+});
+
+export const prayerBody = z.object({
+  tipo: z.enum(["inicial", "final"], { message: "Tipo: inicial o final" }),
+  publisher_id: z.string().uuid({ message: "Publicador inválido" }).nullable(),
+});
+
 export const MAX_JWPUB_BYTES = 25 * 1024 * 1024;
 
 export function isJwpubFilename(name: string): boolean {
