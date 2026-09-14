@@ -1,5 +1,6 @@
 // SQLite local solo lectura (offline). iOS + Android via expo-sqlite.
-// Tablas: meetings, parts, assignments, warnings + sync_meta.
+// Tablas: meetings, parts, assignments, warnings + sync_meta +
+// prayers, unavailability, catálogos y publishers_cache.
 // Sala siempre A, sin selector. Designar exige online (no se escribe aquí).
 
 import * as SQLite from "expo-sqlite";
@@ -94,6 +95,14 @@ export async function initDb(): Promise<void> {
       title TEXT NOT NULL,
       PRIMARY KEY (congregation_id, number)
     );
+    CREATE TABLE IF NOT EXISTS publishers_cache (
+      congregation_id TEXT NOT NULL,
+      id TEXT NOT NULL,
+      nombre TEXT NOT NULL,
+      sexo TEXT NOT NULL DEFAULT '',
+      cargo TEXT NOT NULL DEFAULT '',
+      PRIMARY KEY (congregation_id, id)
+    );
     CREATE INDEX IF NOT EXISTS idx_parts_meeting ON parts(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_assign_meeting ON assignments(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_warn_meeting ON warnings(meeting_id);
@@ -128,6 +137,52 @@ function ensureColumn(table: string, column: string, type: string): void {
 // ---------- tipos de lectura (ver ./dbPrograma) ----------
 
 // ---------- sync (ver ./dbSync, ./dbPrograma) ----------
+
+// ---------- publishers_cache (Fase 20: offline) ----------
+
+export interface CachedPublisher {
+  id: string;
+  nombre: string;
+  sexo: string;
+  cargo: string;
+}
+
+// Sobrescribe o cache da congregação (chamado após GET /publishers online).
+export async function savePublishersCache(
+  congregationId: string,
+  pubs: CachedPublisher[]
+): Promise<void> {
+  const d = getDb();
+  d.execSync("BEGIN");
+  try {
+    d.runSync("DELETE FROM publishers_cache WHERE congregation_id = ?", congregationId);
+    for (const p of pubs) {
+      d.runSync(
+        "INSERT OR REPLACE INTO publishers_cache (congregation_id, id, nombre, sexo, cargo) VALUES (?, ?, ?, ?, ?)",
+        congregationId,
+        p.id,
+        p.nombre,
+        p.sexo ?? "",
+        p.cargo ?? ""
+      );
+    }
+    d.execSync("COMMIT");
+  } catch {
+    try {
+      d.execSync("ROLLBACK");
+    } catch {
+      // best-effort
+    }
+  }
+}
+
+// Fallback offline do usePublishers (pickers do Asignar, nomes no Programa).
+export async function loadPublishersCache(congregationId: string): Promise<CachedPublisher[]> {
+  return getDb().getAllSync<CachedPublisher>(
+    "SELECT id, nombre, sexo, cargo FROM publishers_cache WHERE congregation_id = ? ORDER BY nombre ASC",
+    congregationId
+  );
+}
 
 export async function getLastSince(congregationId: string): Promise<string | null> {
   const row = getDb().getFirstSync<{ last_since: string | null }>(

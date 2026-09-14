@@ -9,6 +9,7 @@ import {
 function draft(duracionMin?: number): PartDraft {
   return {
     orden: 1,
+    seccion: "TESOROS",
     tipoClave: "mwb_tgw_talk",
     titulo: "Discurso",
     requiereAyudante: false,
