@@ -10,11 +10,35 @@ import {
   seedPublishers,
 } from "../lib/publishersStore.js";
 
+const privilegesSchema = z.object({
+  cabezaFamilia: z.boolean().optional(),
+  presidenteSemana: z.boolean().optional(),
+  tesourosDiscurso: z.boolean().optional(),
+  tesourosJoias: z.boolean().optional(),
+  tesourosLeitura: z.boolean().optional(),
+  ministerioIniciar: z.boolean().optional(),
+  ministerioCultivar: z.boolean().optional(),
+  ministerioDiscipulos: z.boolean().optional(),
+  ministerioExplicar: z.boolean().optional(),
+  ministerioAjudante: z.boolean().optional(),
+  ministerioDiscurso: z.boolean().optional(),
+  ministerioOque: z.boolean().optional(),
+  vidaDiscurso: z.boolean().optional(),
+  vidaCondutor: z.boolean().optional(),
+  vidaLeitor: z.boolean().optional(),
+  oracao: z.boolean().optional(),
+  pubPresidente: z.boolean().optional(),
+  pubDiscurso: z.boolean().optional(),
+  pubSentinelaCondutor: z.boolean().optional(),
+  pubSentinelaLeitor: z.boolean().optional(),
+});
+
 const publisherBody = z.object({
   nombre: z.string().min(1, { message: "Nombre requerido" }),
   sexo: z.enum(["M", "F"], { message: "Sexo: M o F" }),
   cargo: z.enum(["anciano", "siervo_ministerial", "publicador"]).optional(),
   telefono: z.string().optional(),
+  privileges: privilegesSchema.optional(),
 });
 
 const updateBody = z.object({
@@ -23,6 +47,7 @@ const updateBody = z.object({
   cargo: z.enum(["anciano", "siervo_ministerial", "publicador"]).optional(),
   telefono: z.string().optional(),
   activo: z.boolean().optional(),
+  privileges: privilegesSchema.optional(),
 });
 
 export async function publishersRoutes(app: FastifyInstance) {

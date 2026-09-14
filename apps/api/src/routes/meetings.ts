@@ -4,7 +4,7 @@ import { assignBody, congIdParam, meetingParam, prayerBody } from "../lib/valida
 import { listMeetings } from "../lib/repoNeon.js";
 import { listMemDetailed } from "../lib/assignStore.js";
 import { listPrayers, upsertPrayer } from "../lib/prayersStore.js";
-import { publisherHistory, suggestCandidates } from "../lib/suggest.js";
+import { publisherHistory, suggestCandidates, suggestHelpers } from "../lib/suggest.js";
 import { assignPart, publishMeetingFlow } from "../lib/assignFlow.js";
 
 // Fase 2B: GET real (contrato 2A preservado) + assign transacional
@@ -108,6 +108,23 @@ export async function meetingsRoutes(app: FastifyInstance) {
       .safeParse(req.params);
     if (!p.success) return reply.code(400).send({ error: uuidMsg });
     const candidates = await suggestCandidates(p.data.id, p.data.partId);
+    return { candidates };
+  });
+
+  // Sugerir ajudantes para uma parte que requer helper (mesmo sexo/família).
+  app.post("/c/:id/parts/:partId/suggest-helpers", async (req, reply) => {
+    const p = z
+      .object({
+        id: z.string().uuid({ message: uuidMsg }),
+        partId: z.string().uuid({ message: uuidMsg }),
+      })
+      .safeParse(req.params);
+    if (!p.success) return reply.code(400).send({ error: uuidMsg });
+    const body = z
+      .object({ titular_id: z.string().uuid({ message: uuidMsg }) })
+      .safeParse(req.body ?? {});
+    if (!body.success) return reply.code(400).send({ error: uuidMsg });
+    const candidates = await suggestHelpers(p.data.id, p.data.partId, body.data.titular_id);
     return { candidates };
   });
 }

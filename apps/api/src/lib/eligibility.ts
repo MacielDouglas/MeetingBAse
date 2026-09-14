@@ -1,20 +1,21 @@
-// Catalogo de elegibilidad (Fase 2A: solo codigo + docs, sin ruta).
-// La Fase 2B usa checkEligibility en POST /parts/:id/assign.
-// Duro = 422 (titular != ayudante, misma congregacion).
-// Suave = warning en espanol (assignment_warnings), nunca bloquea.
+// Fase 2A — catálogo de elegibilidad.
+// Fase 2B — checkEligibility em POST /parts/:id/assign.
+// Duro = 422 (bloqueia). Suave = aviso (warning), nunca bloqueia.
 
 export interface PublisherRef {
   id: string;
-  sexo: string; // "hombre" | "mujer" (acepta varon/m/femenino)
-  cargo: string; // "anciano" | "siervo ministerial" | "publicador" | ...
+  sexo: string;
+  cargo: string;
   congregationId: string;
+  familiaId?: string | null;
+  privileges?: Record<string, boolean>;
 }
 
 export interface PartRef {
   id: string;
   meetingId: string;
   congregationId: string;
-  tipoClave: string; // mwb_tgw_bread, mwb_ayf_part1..4, mwb_lc_cbs, ...
+  tipoClave: string;
   requiereAyudante: boolean;
   needsReview?: boolean;
 }
@@ -34,24 +35,67 @@ export interface EligibilityInput {
 export interface EligibilityWarning {
   tipo: string;
   mensajeEs: string;
-  duro: boolean; // true = bloquea con 422 en la 2B
+  duro: boolean;
 }
 
-const MALE = new Set(["hombre", "varon", "varón", "m", "masculino"]);
-const EBC_OK = new Set([
-  "anciano",
-  "siervo ministerial",
-  "siervo_ministerial",
-  "siervo",
-]);
+// ── helpers ──
 
 const norm = (v: string) => v.trim().toLowerCase();
+
+const MALE = new Set(["hombre", "varon", "varón", "m", "masculino"]);
+const EBC_OK = new Set(["anciano", "siervo ministerial", "siervo_ministerial", "siervo"]);
+
 const isMale = (sexo: string) => MALE.has(norm(sexo));
 const canLeadEbc = (cargo: string) => EBC_OK.has(norm(cargo));
 
-function isAyf(tipoClave: string): boolean {
-  return /^mwb_ayf_part[1-4]$/.test(tipoClave);
+function sameFamily(a: PublisherRef, b: PublisherRef): boolean {
+  return !!(a.familiaId && b.familiaId && a.familiaId === b.familiaId);
 }
+
+function sameSex(a: PublisherRef, b: PublisherRef): boolean {
+  return norm(a.sexo) === norm(b.sexo);
+}
+
+function hasPrivilege(pub: PublisherRef, field: string): boolean {
+  if (!pub.privileges) return false;
+  return pub.privileges[field] === true;
+}
+
+// ── regras por tipoClave (TODAS Duro) ──
+
+interface PartRule {
+  titularMale?: boolean;
+  titularEbc?: boolean;
+  titularPrivilege?: string;
+  helperRequired?: boolean;
+  helperSameSex?: boolean;
+  helperFamilyAllowed?: boolean;
+}
+
+const PART_RULES: Record<string, PartRule> = {
+  // Tesoros
+  mwb_tgw_talk:             {},
+  mwb_tgw_gems:             {},
+  mwb_tgw_bread:            { titularMale: true },
+  // AYF
+  mwb_ayf_iniciar:          {},
+  mwb_ayf_cultivar:         {},
+  mwb_ayf_explicar_discurso:{},
+  mwb_ayf_explicar_demo:    { helperRequired: true, helperSameSex: true, helperFamilyAllowed: true },
+  // Vida
+  mwb_lc_part1:             {},
+  mwb_lc_part2:             {},
+  mwb_lc_cbs:               { titularEbc: true },
+  // Fim de semana
+  wk_oracion:               {},
+  wk_presidente:            { titularEbc: true },
+  wk_discurso_publico:      {},
+  wk_sentinela_dirigente:   { titularEbc: true },
+  wk_sentinela_leitor:      {},
+  w_estudio:                { titularEbc: true },
+};
+
+// ── check principal ──
 
 export function checkEligibility(input: EligibilityInput): {
   warnings: EligibilityWarning[];
@@ -60,7 +104,7 @@ export function checkEligibility(input: EligibilityInput): {
   const warnings: EligibilityWarning[] = [];
   const ayudaId = ayudante?.id ?? ayudanteId ?? null;
 
-  // Duro: titular y ayudante distintos.
+  // Duro: titular != ayudante
   if (ayudaId && ayudaId === titular.id) {
     warnings.push({
       tipo: "titular_ayudante_iguales",
@@ -69,53 +113,77 @@ export function checkEligibility(input: EligibilityInput): {
     });
   }
 
-  // Duro: misma congregacion (titular y ayudante vs. parte).
+  // Duro: misma congregación
   if (titular.congregationId !== part.congregationId) {
     warnings.push({
       tipo: "otra_congregacion",
-      mensajeEs: "Debe ser de la misma congregación",
+      mensajeEs: "El titular debe ser de la misma congregación",
       duro: true,
     });
-  } else if (ayudante && ayudante.congregationId !== part.congregationId) {
+  }
+  if (ayudante && ayudante.congregationId !== part.congregationId) {
     warnings.push({
-      tipo: "otra_congregacion",
-      mensajeEs: "Debe ser de la misma congregación",
+      tipo: "otra_congregacion_ayudante",
+      mensajeEs: "El ayudante debe ser de la misma congregación",
       duro: true,
     });
   }
 
-  // Suave: Lectura del estudiante y AYF 1..4 solo varones.
-  if (part.tipoClave === "mwb_tgw_bread" || isAyf(part.tipoClave)) {
-    if (!isMale(titular.sexo)) {
+  // Regras específicas por tipoClave
+  const rule = PART_RULES[part.tipoClave];
+  if (rule) {
+    // Solo varón
+    if (rule.titularMale && !isMale(titular.sexo)) {
       warnings.push({
         tipo: "solo_varon",
         mensajeEs: "Solo un varón puede tomar esta parte",
-        duro: false,
+        duro: true,
       });
     }
-  }
 
-  // Suave: EBC solo ancianos o siervos ministeriales.
-  if (part.tipoClave === "mwb_lc_cbs") {
-    if (!canLeadEbc(titular.cargo)) {
+    // Solo anciano / siervo ministerial
+    if (rule.titularEbc && !canLeadEbc(titular.cargo)) {
       warnings.push({
         tipo: "ebc_solo_nombrados",
-        mensajeEs: "El EBC lo dirige un anciano o siervo ministerial",
-        duro: false,
+        mensajeEs: "Solo un anciano o siervo ministerial puede tomar esta parte",
+        duro: true,
       });
+    }
+
+    // Privilegio requerido
+    if (rule.titularPrivilege && !hasPrivilege(titular, rule.titularPrivilege)) {
+      warnings.push({
+        tipo: "privilegio_requerido",
+        mensajeEs: `No tiene el privilegio requerido: ${rule.titularPrivilege}`,
+        duro: true,
+      });
+    }
+
+    // Ayudante requerido
+    if (rule.helperRequired && !ayudaId) {
+      warnings.push({
+        tipo: "requiere_ayudante",
+        mensajeEs: "Esta parte requiere ayudante",
+        duro: true,
+      });
+    }
+
+    // Ayudante mesma sexo (ou família se permitido)
+    if (rule.helperRequired && ayudante) {
+      if (rule.helperSameSex) {
+        const familyOk = rule.helperFamilyAllowed && sameFamily(titular, ayudante);
+        if (!sameSex(titular, ayudante) && !familyOk) {
+          warnings.push({
+            tipo: "ayudante_mismo_sexo",
+            mensajeEs: "El ayudante debe ser del mismo sexo (o familiar en esta parte)",
+            duro: true,
+          });
+        }
+      }
     }
   }
 
-  // Suave: parte con ayudante requiere ayudante presente.
-  if (part.requiereAyudante && !ayudaId) {
-    warnings.push({
-      tipo: "requiere_ayudante",
-      mensajeEs: "Esta parte requiere ayudante",
-      duro: false,
-    });
-  }
-
-  // Suave: doble asignacion en la misma semana (titular).
+  // Avios suaves (nunca bloqueiam)
   if (input.titularYaAsignadoEstaSemana) {
     warnings.push({
       tipo: "doble_asignacion",
@@ -123,8 +191,6 @@ export function checkEligibility(input: EligibilityInput): {
       duro: false,
     });
   }
-
-  // Suave: doble asignacion en la misma semana (ayudante).
   if (input.ayudanteYaAsignadoEstaSemana) {
     warnings.push({
       tipo: "doble_asignacion_ayudante",
@@ -132,8 +198,6 @@ export function checkEligibility(input: EligibilityInput): {
       duro: false,
     });
   }
-
-  // Suave: parte marcada para revision (placeholder del parser).
   if (part.needsReview) {
     warnings.push({
       tipo: "needs_review",
@@ -141,8 +205,6 @@ export function checkEligibility(input: EligibilityInput): {
       duro: false,
     });
   }
-
-  // Suave: titular/ayudante indisponible en la fecha de la reunión.
   if (input.titularIndisponible) {
     warnings.push({
       tipo: "titular_indisponible",
@@ -157,8 +219,6 @@ export function checkEligibility(input: EligibilityInput): {
       duro: false,
     });
   }
-
-  // Suave: titular teve a mesma parte na semana passada (rotação).
   if (input.titularRepitioSemanaPasada) {
     warnings.push({
       tipo: "repeticion_parte",

@@ -101,6 +101,8 @@ export async function initDb(): Promise<void> {
       nombre TEXT NOT NULL,
       sexo TEXT NOT NULL DEFAULT '',
       cargo TEXT NOT NULL DEFAULT '',
+      familia_id TEXT,
+      privileges TEXT DEFAULT '{}',
       PRIMARY KEY (congregation_id, id)
     );
     CREATE INDEX IF NOT EXISTS idx_parts_meeting ON parts(meeting_id);
@@ -119,6 +121,8 @@ export async function initDb(): Promise<void> {
   ensureColumn("meetings", "cancion_final", "INTEGER");
   ensureColumn("parts", "duracion_min", "INTEGER");
   ensureColumn("parts", "hora_inicio", "TEXT");
+  ensureColumn("publishers_cache", "familia_id", "TEXT");
+  ensureColumn("publishers_cache", "privileges", "TEXT DEFAULT '{}'");
 }
 
 function ensureColumn(table: string, column: string, type: string): void {
@@ -145,6 +149,8 @@ export interface CachedPublisher {
   nombre: string;
   sexo: string;
   cargo: string;
+  familiaId?: string | null;
+  privileges: Record<string, boolean>;
 }
 
 // Sobrescribe o cache da congregação (chamado após GET /publishers online).
@@ -158,12 +164,14 @@ export async function savePublishersCache(
     d.runSync("DELETE FROM publishers_cache WHERE congregation_id = ?", congregationId);
     for (const p of pubs) {
       d.runSync(
-        "INSERT OR REPLACE INTO publishers_cache (congregation_id, id, nombre, sexo, cargo) VALUES (?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO publishers_cache (congregation_id, id, nombre, sexo, cargo, familia_id, privileges) VALUES (?, ?, ?, ?, ?, ?, ?)",
         congregationId,
         p.id,
         p.nombre,
         p.sexo ?? "",
-        p.cargo ?? ""
+        p.cargo ?? "",
+        p.familiaId ?? null,
+        JSON.stringify(p.privileges ?? {})
       );
     }
     d.execSync("COMMIT");
@@ -178,10 +186,25 @@ export async function savePublishersCache(
 
 // Fallback offline do usePublishers (pickers do Asignar, nomes no Programa).
 export async function loadPublishersCache(congregationId: string): Promise<CachedPublisher[]> {
-  return getDb().getAllSync<CachedPublisher>(
-    "SELECT id, nombre, sexo, cargo FROM publishers_cache WHERE congregation_id = ? ORDER BY nombre ASC",
+  const rows = getDb().getAllSync<{
+    id: string;
+    nombre: string;
+    sexo: string;
+    cargo: string;
+    familia_id: string | null;
+    privileges: string;
+  }>(
+    "SELECT id, nombre, sexo, cargo, familia_id, privileges FROM publishers_cache WHERE congregation_id = ? ORDER BY nombre ASC",
     congregationId
   );
+  return rows.map((r) => ({
+    id: r.id,
+    nombre: r.nombre,
+    sexo: r.sexo,
+    cargo: r.cargo,
+    familiaId: r.familia_id ?? null,
+    privileges: (() => { try { return JSON.parse(r.privileges ?? "{}"); } catch { return {}; } })(),
+  }));
 }
 
 export async function getLastSince(congregationId: string): Promise<string | null> {

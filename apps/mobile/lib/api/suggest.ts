@@ -45,3 +45,18 @@ export async function getPublisherHistory(
   if (!res.ok) throw new Error(toErrorMessage(body, "Error al cargar historial"));
   return (body as { history: PublisherHistory }).history;
 }
+
+export async function suggestHelpers(
+  congregationId: string,
+  partId: string,
+  titularId: string
+): Promise<SuggestCandidate[]> {
+  const res = await fetch(`${API_URL}/c/${congregationId}/parts/${partId}/suggest-helpers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ titular_id: titularId }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(toErrorMessage(body, "Error al sugerir ayudantes"));
+  return ((body as { candidates?: SuggestCandidate[] }).candidates ?? []) as SuggestCandidate[];
+}

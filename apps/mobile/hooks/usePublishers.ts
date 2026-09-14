@@ -14,6 +14,8 @@ export interface PublisherRef {
   nombre: string;
   sexo: string;
   cargo: string;
+  familiaId?: string | null;
+  privileges: Record<string, boolean>;
 }
 
 export function usePublishers(congId: string | null) {

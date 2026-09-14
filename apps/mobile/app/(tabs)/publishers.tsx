@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Button, FlatList, Text, TextInput, View, Alert } from "react-native";
+import { Button, FlatList, Text, TextInput, View, Alert, ScrollView } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
 import { SearchBar } from "../../components/SearchBar";
 import { SkeletonRow } from "../../components/Skeleton";
+import { PrivilegesForm, PublisherPrivileges, DEFAULT_PRIVILEGES } from "../../components/PrivilegesForm";
 import es from "../../i18n/es.json";
 
 interface Publisher {
@@ -13,6 +14,7 @@ interface Publisher {
   cargo: string;
   telefono?: string;
   activo: boolean;
+  privileges: PublisherPrivileges;
 }
 
 const CARGO_LABELS: Record<string, string> = {
@@ -28,8 +30,11 @@ export default function PublishersScreen() {
   const [sexo, setSexo] = useState<"M" | "F">("M");
   const [cargo, setCargo] = useState<string>("publicador");
   const [telefono, setTelefono] = useState("");
+  const [privileges, setPrivileges] = useState<PublisherPrivileges>(DEFAULT_PRIVILEGES);
   const [showForm, setShowForm] = useState(false);
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
   const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const pubs = useQuery({
     queryKey: ["publishers", congId],
@@ -43,7 +48,7 @@ export default function PublishersScreen() {
   });
 
   const create = useMutation({
-    mutationFn: async (data: { nombre: string; sexo: string; cargo: string; telefono?: string }) => {
+    mutationFn: async (data: { nombre: string; sexo: string; cargo: string; telefono?: string; privileges?: Partial<PublisherPrivileges> }) => {
       const res = await fetch(`${API_URL}/c/${congId}/publishers`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -55,9 +60,28 @@ export default function PublishersScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["publishers", congId] });
-      setNombre("");
-      setTelefono("");
-      setShowForm(false);
+      resetForm();
+    },
+    onError: (e) => {
+      const msg = isNetworkError(e) ? es["Sin conexión. Intente más tarde."] : (e as Error).message;
+      Alert.alert(es["Error"], msg);
+    },
+  });
+
+  const update = useMutation({
+    mutationFn: async (data: { id: string; nombre: string; sexo: string; cargo: string; telefono?: string; privileges?: Partial<PublisherPrivileges> }) => {
+      const res = await fetch(`${API_URL}/c/${congId}/publishers/${data.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(data),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? es["Error al crear"]);
+      return body.publisher;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["publishers", congId] });
+      resetForm();
     },
     onError: (e) => {
       const msg = isNetworkError(e) ? es["Sin conexión. Intente más tarde."] : (e as Error).message;
@@ -82,12 +106,59 @@ export default function PublishersScreen() {
     },
   });
 
+  function resetForm() {
+    setNombre("");
+    setSexo("M");
+    setCargo("publicador");
+    setTelefono("");
+    setPrivileges(DEFAULT_PRIVILEGES);
+    setShowForm(false);
+    setWizardStep(1);
+    setEditingId(null);
+  }
+
   function handleCreate() {
     if (!nombre.trim()) {
       Alert.alert(es["Error"], es["Nombre requerido"]);
       return;
     }
-    create.mutate({ nombre: nombre.trim(), sexo, cargo, telefono: telefono || undefined });
+    if (editingId) {
+      update.mutate({
+        id: editingId,
+        nombre: nombre.trim(),
+        sexo,
+        cargo,
+        telefono: telefono || undefined,
+        privileges,
+      });
+    } else {
+      create.mutate({
+        nombre: nombre.trim(),
+        sexo,
+        cargo,
+        telefono: telefono || undefined,
+        privileges,
+      });
+    }
+  }
+
+  function handleEdit(pub: Publisher) {
+    setEditingId(pub.id);
+    setNombre(pub.nombre);
+    setSexo(pub.sexo as "M" | "F");
+    setCargo(pub.cargo);
+    setTelefono(pub.telefono ?? "");
+    setPrivileges(pub.privileges);
+    setShowForm(true);
+    setWizardStep(1);
+  }
+
+  function handleSkipPrivileges() {
+    if (!nombre.trim()) {
+      Alert.alert(es["Error"], es["Nombre requerido"]);
+      return;
+    }
+    handleCreate();
   }
 
   const filtered = (pubs.data ?? []).filter(
@@ -100,36 +171,112 @@ export default function PublishersScreen() {
 
       <Button
         title={showForm ? es["Cancelar"] : `+ ${es["Nuevo publicador"]}`}
-        onPress={() => setShowForm(!showForm)}
+        onPress={() => {
+          if (showForm) {
+            resetForm();
+          } else {
+            setShowForm(true);
+            setWizardStep(1);
+          }
+        }}
       />
 
       {showForm && (
         <View style={{ gap: 8, padding: 12, backgroundColor: "#f5f5f5", borderRadius: 8 }}>
-          <TextInput
-            placeholder={es["Nombre"]}
-            value={nombre}
-            onChangeText={setNombre}
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
-          />
-          <Text style={{ fontSize: 13, color: "#555" }}>{es["Sexo"]}</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Button title="M" onPress={() => setSexo("M")} color={sexo === "M" ? "#1a5276" : "#ccc"} />
-            <Button title="F" onPress={() => setSexo("F")} color={sexo === "F" ? "#1a5276" : "#ccc"} />
-          </View>
-          <Text style={{ fontSize: 13, color: "#555" }}>{es["Cargo"]}</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {(["publicador", "siervo_ministerial", "anciano"] as const).map((c) => (
-              <Button key={c} title={CARGO_LABELS[c]} onPress={() => setCargo(c)} color={cargo === c ? "#7d3c98" : "#ccc"} />
-            ))}
-          </View>
-          <TextInput
-            placeholder={es["Teléfono (opcional)"]}
-            value={telefono}
-            onChangeText={setTelefono}
-            keyboardType="phone-pad"
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
-          />
-          <Button title={create.isPending ? es["Creando..."] : es["Crear publicador"]} onPress={handleCreate} disabled={create.isPending} />
+          <Text style={{ fontSize: 14, color: "#666", textAlign: "center" }}>
+            {editingId ? `${es["Paso"]} ${wizardStep} ${es["de"]}` : `${es["Paso 1 de 2"]}`}
+          </Text>
+
+          {wizardStep === 1 && (
+            <View style={{ gap: 8 }}>
+              <TextInput
+                placeholder={es["Nombre"]}
+                value={nombre}
+                onChangeText={setNombre}
+                style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
+              />
+              <Text style={{ fontSize: 13, color: "#555" }}>{es["Sexo"]}</Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Button title="M" onPress={() => setSexo("M")} color={sexo === "M" ? "#1a5276" : "#ccc"} />
+                <Button title="F" onPress={() => setSexo("F")} color={sexo === "F" ? "#1a5276" : "#ccc"} />
+              </View>
+              <Text style={{ fontSize: 13, color: "#555" }}>{es["Cargo"]}</Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(["publicador", "siervo_ministerial", "anciano"] as const).map((c) => (
+                  <Button key={c} title={CARGO_LABELS[c]} onPress={() => setCargo(c)} color={cargo === c ? "#7d3c98" : "#ccc"} />
+                ))}
+              </View>
+              <TextInput
+                placeholder={es["Teléfono (opcional)"]}
+                value={telefono}
+                onChangeText={setTelefono}
+                keyboardType="phone-pad"
+                style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
+              />
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {editingId ? (
+                  <>
+                    <Button
+                      title={es["Próximo"]}
+                      onPress={() => {
+                        if (!nombre.trim()) {
+                          Alert.alert(es["Error"], es["Nombre requerido"]);
+                          return;
+                        }
+                        setWizardStep(2);
+                      }}
+                    />
+                    <Button
+                      title={update.isPending ? es["Creando..."] : es["Guardar"]}
+                      onPress={handleCreate}
+                      disabled={update.isPending}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      title={es["Próximo"]}
+                      onPress={() => {
+                        if (!nombre.trim()) {
+                          Alert.alert(es["Error"], es["Nombre requerido"]);
+                          return;
+                        }
+                        setWizardStep(2);
+                      }}
+                    />
+                    <Button
+                      title={es["Omitir"]}
+                      onPress={handleSkipPrivileges}
+                      color="#999"
+                    />
+                  </>
+                )}
+              </View>
+            </View>
+          )}
+
+          {wizardStep === 2 && (
+            <ScrollView style={{ maxHeight: 400 }}>
+              <PrivilegesForm
+                sexo={sexo}
+                cargo={cargo}
+                privileges={privileges}
+                onPrivilegesChange={setPrivileges}
+              />
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+                <Button
+                  title={es["Anterior"]}
+                  onPress={() => setWizardStep(1)}
+                  color="#999"
+                />
+                <Button
+                  title={create.isPending || update.isPending ? es["Creando..."] : editingId ? es["Guardar"] : es["Crear publicador"]}
+                  onPress={handleCreate}
+                  disabled={create.isPending || update.isPending}
+                />
+              </View>
+            </ScrollView>
+          )}
         </View>
       )}
 
@@ -155,12 +302,15 @@ export default function PublishersScreen() {
                 {item.telefono ? ` · ${item.telefono}` : ""}
               </Text>
             </View>
-            <Button title="X" onPress={() => {
-              Alert.alert(es["Eliminar"], `¿Eliminar ${item.nombre}?`, [
-                { text: es["Cancelar"] },
-                { text: es["Eliminar"], onPress: () => del.mutate(item.id) },
-              ]);
-            }} />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button title={es["Privilegios"]} onPress={() => handleEdit(item)} />
+              <Button title="X" onPress={() => {
+                Alert.alert(es["Eliminar"], `¿Eliminar ${item.nombre}?`, [
+                  { text: es["Cancelar"] },
+                  { text: es["Eliminar"], onPress: () => del.mutate(item.id) },
+                ]);
+              }} />
+            </View>
           </View>
         )}
       />

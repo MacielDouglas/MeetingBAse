@@ -4,7 +4,7 @@ import { assignments, meetings, parts } from "../../../../packages/db/schema.js"
 import { listMeetings } from "./repoNeon.js";
 import { listConfirmedMeetings } from "./importStore.js";
 import { listMemAssignments } from "./assignStore.js";
-import { listPublishers } from "./publishersStore.js";
+import { listPublishers, type Publisher } from "./publishersStore.js";
 import { unavailablePublisherIds } from "./unavailabilityStore.js";
 import { findMemPart } from "./assignStore.js";
 import { findNeonPart } from "./repoAssign.js";
@@ -72,7 +72,6 @@ export async function publisherHistory(congId: string, publisherId: string): Pro
     const t = (await partTipo(congId, a.part_id)) ?? "desconocido";
     byTipo.set(t, (byTipo.get(t) ?? 0) + 1);
   }
-  // Última data: busca nas reuniões.
   let lastFecha: string | null = null;
   const fechas = new Map<string, string>();
   if (isDbConfigured()) {
@@ -98,7 +97,6 @@ export async function publisherHistory(congId: string, publisherId: string): Pro
   };
 }
 
-// Reunião anterior do mesmo tipo (por data) — para regra de repetição.
 export async function prevMeetingSameTipo(
   congId: string,
   meetingId: string
@@ -120,7 +118,6 @@ export async function prevMeetingSameTipo(
   return null;
 }
 
-// Titular teve a MESMA parte (tipoClave) na reunião anterior do mesmo tipo?
 export async function titularRepeatedLastWeek(
   congId: string,
   meetingId: string,
@@ -144,10 +141,46 @@ export interface Candidate {
   motivo: string;
 }
 
-const MALE_ONLY = new Set(["mwb_tgw_bread", "mwb_ayf_part1", "mwb_ayf_part2", "mwb_ayf_part3", "mwb_ayf_part4"]);
-const isMaleSex = (sexo: string) => ["m", "hombre", "varon", "varón", "masculino"].includes(sexo.trim().toLowerCase());
+// ── Regras de elegibilidade por tipoClave ──
 
-// Candidatos ordenados: disponíveis, sem parte na semana, menos designações.
+const MALE = new Set(["m", "hombre", "varon", "varón", "masculino"]);
+const EBC_OK = new Set(["anciano", "siervo ministerial", "siervo_ministerial", "siervo"]);
+
+const isMale = (sexo: string) => MALE.has(sexo.trim().toLowerCase());
+const canLeadEbc = (cargo: string) => EBC_OK.has(cargo.trim().toLowerCase());
+
+interface PartFilter {
+  maleOnly?: boolean;
+  ebcOnly?: boolean;
+  privilege?: string;
+}
+
+const PART_FILTERS: Record<string, PartFilter> = {
+  mwb_tgw_talk:              {},
+  mwb_tgw_gems:              {},
+  mwb_tgw_bread:             { maleOnly: true },
+  mwb_ayf_iniciar:           {},
+  mwb_ayf_cultivar:          {},
+  mwb_ayf_explicar_discurso: {},
+  mwb_ayf_explicar_demo:     {},
+  mwb_lc_part1:              {},
+  mwb_lc_part2:              {},
+  mwb_lc_cbs:                { ebcOnly: true },
+  wk_oracion:                {},
+  wk_presidente:             { ebcOnly: true },
+  wk_discurso_publico:       {},
+  wk_sentinela_dirigente:    { ebcOnly: true },
+  wk_sentinela_leitor:       {},
+  w_estudio:                 { ebcOnly: true },
+};
+
+function matchesFilter(p: Publisher, filter: PartFilter): boolean {
+  if (filter.maleOnly && !isMale(p.sexo)) return false;
+  if (filter.ebcOnly && !canLeadEbc(p.cargo)) return false;
+  if (filter.privilege && !p.privileges[filter.privilege as keyof typeof p.privileges]) return false;
+  return true;
+}
+
 export async function suggestCandidates(congId: string, partId: string): Promise<Candidate[]> {
   let tipoClave: string | null = null;
   let meetingId: string | null = null;
@@ -165,7 +198,7 @@ export async function suggestCandidates(congId: string, partId: string): Promise
     tipoClave = mem.part.tipoClave;
     meetingId = mem.meetingId;
   }
-  // Fecha da reunião.
+
   if (isDbConfigured()) {
     try {
       const db = getDb();
@@ -193,14 +226,15 @@ export async function suggestCandidates(congId: string, partId: string): Promise
     if (a.ayudante_id) totals.set(a.ayudante_id, (totals.get(a.ayudante_id) ?? 0) + 1);
   }
 
-  const maleOnly = MALE_ONLY.has(tipoClave);
+  const filter = tipoClave ? PART_FILTERS[tipoClave] : undefined;
+
   const rows = pubs
     .filter((p) => p.activo)
     .filter((p) => !unav.has(p.id))
+    .filter((p) => !filter || matchesFilter(p, filter))
     .map((p) => {
       const busy = assignedThisWeek.has(p.id);
       const total = totals.get(p.id) ?? 0;
-      const wrongSex = maleOnly && !isMaleSex(p.sexo);
       return {
         id: p.id,
         nombre: p.nombre,
@@ -209,9 +243,77 @@ export async function suggestCandidates(congId: string, partId: string): Promise
           : total === 0
             ? "Disponible, sin designaciones"
             : `Disponible, ${total} designaciones`,
-        rank: (wrongSex ? 1000 : 0) + (busy ? 100 : 0) + total,
+        rank: (busy ? 100 : 0) + total,
       };
     })
     .sort((a, b) => a.rank - b.rank || a.nombre.localeCompare(b.nombre));
   return rows.map(({ id, nombre, motivo }) => ({ id, nombre, motivo }));
+}
+
+// Sugere ajudantes para uma parte que requer helper.
+export async function suggestHelpers(
+  congId: string,
+  partId: string,
+  titularId: string
+): Promise<Candidate[]> {
+  let tipoClave: string | null = null;
+  let meetingId: string | null = null;
+  let meetingFecha = "";
+  if (isDbConfigured()) {
+    const hit = await findNeonPart(congId, partId);
+    if (hit) {
+      tipoClave = hit.part.tipoClave;
+      meetingId = hit.part.meetingId;
+    }
+  }
+  if (!tipoClave || !meetingId) {
+    const mem = findMemPart(congId, partId);
+    if (!mem) return [];
+    tipoClave = mem.part.tipoClave;
+    meetingId = mem.meetingId;
+  }
+
+  if (isDbConfigured()) {
+    try {
+      const db = getDb();
+      if (db) {
+        const rows = await db.select().from(meetings).where(eq(meetings.id, meetingId));
+        if (rows[0]) meetingFecha = String(rows[0].fecha);
+      }
+    } catch { /* ignore */ }
+  }
+  if (!meetingFecha) {
+    meetingFecha = listConfirmedMeetings(congId).find((m) => m.id === meetingId)?.fecha ?? "";
+  }
+
+  const pubs = await listPublishers(congId);
+  const unav = meetingFecha ? await unavailablePublisherIds(congId, meetingFecha) : new Set<string>();
+  const all = await allAssignments(congId);
+  const assignedThisWeek = new Set(
+    all.filter((a) => a.meeting_id === meetingId).flatMap((a) => [a.titular_id, a.ayudante_id].filter(Boolean) as string[])
+  );
+
+  const titular = pubs.find((p) => p.id === titularId);
+  if (!titular) return [];
+
+  // Regra:helper deve ser do mesmo sexo (ou familiar se permitido)
+  const sameSexOnly = tipoClave === "mwb_ayf_explicar_demo";
+
+  return pubs
+    .filter((p) => p.activo && p.id !== titularId && !unav.has(p.id))
+    .filter((p) => {
+      if (sameSexOnly && p.sexo.trim().toLowerCase() !== titular.sexo.trim().toLowerCase()) {
+        // Familiar also allowed
+        const sameFamily = titular.familiaId && p.familiaId && titular.familiaId === p.familiaId;
+        if (!sameFamily) return false;
+      }
+      return true;
+    })
+    .map((p) => ({
+      id: p.id,
+      nombre: p.nombre,
+      motivo: assignedThisWeek.has(p.id)
+        ? "Ya tiene parte esta semana"
+        : "Disponible",
+    }));
 }
