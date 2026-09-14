@@ -99,6 +99,17 @@ export const prayers = pgTable("prayers", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({ uq_prayer: uniqueIndex("uq_prayer").on(t.meetingId, t.tipo) }));
 
+// Fase 11 — indisponibilidade de publicadores (períodos sem servir).
+export const unavailability = pgTable("unavailability", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  congregationId: uuid("congregation_id").notNull(),
+  publisherId: uuid("publisher_id").notNull(),
+  fechaInicio: date("fecha_inicio").notNull(),
+  fechaFin: date("fecha_fin").notNull(),
+  motivo: text("motivo"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({ idx_unav_pub: index("idx_unav_pub").on(t.congregationId, t.publisherId) }));
+
 // Fase 1 — import jobs (.jwpub upload -> preview -> confirm).
 export const imports = pgTable("imports", {
   id: uuid("id").defaultRandom().primaryKey(),

@@ -26,6 +26,8 @@ export interface EligibilityInput {
   part: PartRef;
   titularYaAsignadoEstaSemana?: boolean;
   ayudanteYaAsignadoEstaSemana?: boolean;
+  titularIndisponible?: boolean;
+  ayudanteIndisponible?: boolean;
 }
 
 export interface EligibilityWarning {
@@ -135,6 +137,22 @@ export function checkEligibility(input: EligibilityInput): {
     warnings.push({
       tipo: "needs_review",
       mensajeEs: "Esta parte requiere revisión",
+      duro: false,
+    });
+  }
+
+  // Suave: titular/ayudante indisponible en la fecha de la reunión.
+  if (input.titularIndisponible) {
+    warnings.push({
+      tipo: "titular_indisponible",
+      mensajeEs: "El titular marcó indisponibilidad para esta fecha",
+      duro: false,
+    });
+  }
+  if (input.ayudanteIndisponible) {
+    warnings.push({
+      tipo: "ayudante_indisponible",
+      mensajeEs: "El ayudante marcó indisponibilidad para esta fecha",
       duro: false,
     });
   }

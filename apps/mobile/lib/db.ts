@@ -75,6 +75,14 @@ export async function initDb(): Promise<void> {
       tipo TEXT NOT NULL,
       publisher_id TEXT
     );
+    CREATE TABLE IF NOT EXISTS unavailability (
+      id TEXT PRIMARY KEY NOT NULL,
+      congregation_id TEXT NOT NULL,
+      publisher_id TEXT NOT NULL,
+      fecha_inicio TEXT NOT NULL,
+      fecha_fin TEXT NOT NULL,
+      motivo TEXT
+    );
     CREATE INDEX IF NOT EXISTS idx_parts_meeting ON parts(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_assign_meeting ON assignments(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_warn_meeting ON warnings(meeting_id);
@@ -255,6 +263,20 @@ export async function saveSyncPayload(
         str(pr.congregation_id ?? congregationId, congregationId),
         str(pr.tipo),
         (pr.publisher_id as string | null) ?? null
+      );
+    }
+    if (!payload.filtrado) {
+      d.runSync("DELETE FROM unavailability WHERE congregation_id = ?", congregationId);
+    }
+    for (const u of payload.unavailability ?? []) {
+      d.runSync(
+        "INSERT OR REPLACE INTO unavailability (id, congregation_id, publisher_id, fecha_inicio, fecha_fin, motivo) VALUES (?, ?, ?, ?, ?, ?)",
+        str(u.id),
+        str(u.congregation_id ?? congregationId, congregationId),
+        str(u.publisher_id),
+        str(u.fecha_inicio),
+        str(u.fecha_fin),
+        (u.motivo as string | null) ?? null
       );
     }
     d.runSync(

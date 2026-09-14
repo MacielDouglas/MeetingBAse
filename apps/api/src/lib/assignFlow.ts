@@ -32,6 +32,7 @@ import {
 } from "./repoAssign.js";
 import type { ListedMeeting } from "./repoNeon.js";
 import type { Prayer } from "./prayersStore.js";
+import { unavailablePublisherIds, type Unavailability } from "./unavailabilityStore.js";
 
 // Fase 2B — orquestra assign/publish/sync.
 // Neon primeiro (se há DATABASE_URL), memória depois.
@@ -44,6 +45,7 @@ import type { Prayer } from "./prayersStore.js";
 interface Bundle {
   part: PartRef;
   meetingId: string;
+  meetingFecha: string;
   titular: PublisherRef;
   ayudante: PublisherRef | null;
   yaAsignado: boolean;
@@ -76,6 +78,7 @@ async function bundleNeon(
       needsReview: hit.part.needsReview,
     },
     meetingId: hit.part.meetingId,
+    meetingFecha: hit.meetingFecha,
     titular: tit,
     ayudante: ayu,
     yaAsignado: await titularAssignedNeon(hit.part.meetingId, titularId, partId),
@@ -111,6 +114,7 @@ async function bundleMem(
       needsReview: hit.part.needsReview,
     },
     meetingId: hit.meetingId,
+    meetingFecha: hit.meetingFecha,
     titular: tit,
     ayudante: ayu,
     yaAsignado: titularAssignedMem(hit.meetingId, titularId, partId),
@@ -170,6 +174,10 @@ export async function assignPart(
     part: b.part,
     titularYaAsignadoEstaSemana: b.yaAsignado,
     ayudanteYaAsignadoEstaSemana: b.ayudanteYaAsignado,
+    titularIndisponible: (await unavailablePublisherIds(congId, b.meetingFecha)).has(titularId),
+    ayudanteIndisponible: ayudanteId
+      ? (await unavailablePublisherIds(congId, b.meetingFecha)).has(ayudanteId)
+      : false,
   });
   const duro = warnings.find((w) => w.duro);
   if (duro) return { status: 422, body: { error: duro.mensajeEs } };
@@ -286,7 +294,8 @@ export function buildSyncPayload(
   warnings: WarningRow[],
   sinceRaw: string | null,
   persistencia: "neon" | "memoria",
-  prayers: Prayer[] = []
+  prayers: Prayer[] = [],
+  unavailability: Unavailability[] = []
 ) {
   const t = sinceTime(sinceRaw);
 
@@ -356,6 +365,7 @@ export function buildSyncPayload(
     filtrado: t !== null,
     persistencia,
     prayers: prayers.filter((pr) => meetingIds.has(pr.meeting_id)),
+    unavailability,
     // Todos os IDs atuais (sem filtro de data): o app apaga do SQLite
     // local as reuniões que não estão mais no servidor (ex. IDs antigos
     // de uma confirmação anterior — o sync incremental nunca apagava).
@@ -365,11 +375,13 @@ export function buildSyncPayload(
 
 async function memSyncData(congId: string): Promise<SyncData> {
   const { listPrayers } = await import("./prayersStore.js");
+  const { listUnavailability } = await import("./unavailabilityStore.js");
   return {
     meetings: listMemDetailed(congId),
     assignments: listMemAssignments(congId),
     warnings: listMemWarnings(congId),
     prayers: await listPrayers(congId),
+    unavailability: await listUnavailability(congId),
   };
 }
 
@@ -378,11 +390,11 @@ export async function syncCongregation(congId: string, sinceRaw: string | null) 
     try {
       const d = await fetchNeonSyncData(congId);
       if (d && d.meetings.length > 0)
-        return buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "neon", d.prayers);
+        return buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "neon", d.prayers, d.unavailability);
     } catch {
       // cai para memória
     }
   }
   const d = await memSyncData(congId);
-  return buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "memoria", d.prayers);
+  return buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "memoria", d.prayers, d.unavailability);
 }

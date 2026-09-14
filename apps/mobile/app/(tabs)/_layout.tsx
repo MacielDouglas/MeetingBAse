@@ -9,6 +9,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="asignar" options={{ title: es["Asignar"] }} />
       <Tabs.Screen name="importar" options={{ title: es["Importar"] }} />
       <Tabs.Screen name="publishers" options={{ title: es["Publicadores"] }} />
+      <Tabs.Screen name="ausencias" options={{ title: es["Ausencias"] }} />
       <Tabs.Screen name="speakers" options={{ title: es["Falantes"] }} />
       <Tabs.Screen name="visits" options={{ title: es["Visitas"] }} />
       <Tabs.Screen name="exportar" options={{ title: es["Exportar"] }} />

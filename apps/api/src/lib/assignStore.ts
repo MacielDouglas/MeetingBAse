@@ -70,6 +70,7 @@ export async function getMemPublisher(id: string, congId?: string): Promise<MemP
 export interface MemPartHit {
   meetingId: string;
   congregationId: string;
+  meetingFecha: string;
   part: {
     id: string;
     orden: number;
@@ -92,6 +93,7 @@ export function findMemPart(
       return {
         meetingId: m.id,
         congregationId: m.congregation_id,
+        meetingFecha: m.fecha,
         part: {
           id: p.id,
           orden: p.orden,

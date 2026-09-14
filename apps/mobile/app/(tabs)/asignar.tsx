@@ -9,6 +9,7 @@ import es from "../../i18n/es.json";
 import {
   assignPart,
   getPrayers,
+  getUnavailability,
   isNetworkError,
   savePrayer,
   type AssignResult,
@@ -39,6 +40,17 @@ export default function Asignar() {
 
   const pubs = usePublishers(congId, token);
   const publishers = pubs.data ?? [];
+
+  // Indisponíveis na data da reunião: fora dos pickers (a API também avisa).
+  const unav = useQuery({
+    queryKey: ["unavailability", congId, meeting?.fecha],
+    queryFn: () => getUnavailability(congId, { fecha: meeting?.fecha }),
+    enabled: !!congId && !!meeting?.fecha && !offline,
+    retry: 1,
+    staleTime: 30_000,
+  });
+  const unavIds = new Set((unav.data ?? []).map((u) => u.publisher_id));
+  const available = publishers.filter((p) => !unavIds.has(p.id));
 
   // Oraciones actuales: del servidor si hay red, si no del sync local.
   const serverPrayers = useQuery({
@@ -178,7 +190,7 @@ export default function Asignar() {
 
           <Text style={{ fontWeight: "bold" }}>{es["Titular"]}</Text>
           <FlatList
-            data={publishers}
+            data={available}
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -198,7 +210,7 @@ export default function Asignar() {
 
           <Text style={{ fontWeight: "bold" }}>{es["Ayudante opcional"]}</Text>
           <FlatList
-            data={publishers.filter((p) => p.id !== titularId)}
+            data={available.filter((p) => p.id !== titularId)}
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -235,7 +247,7 @@ export default function Asignar() {
                 {prayerName(tipo)}
               </Text>
               <FlatList
-                data={publishers}
+                data={available}
                 keyExtractor={(item) => `${tipo}-${item.id}`}
                 horizontal
                 showsHorizontalScrollIndicator={false}

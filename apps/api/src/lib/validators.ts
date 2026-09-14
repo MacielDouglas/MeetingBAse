@@ -30,6 +30,15 @@ export const prayerBody = z.object({
   publisher_id: z.string().uuid({ message: "Publicador inválido" }).nullable(),
 });
 
+const fechaStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Fecha inválida (AAAA-MM-DD)" });
+
+export const unavailabilityBody = z.object({
+  publisher_id: z.string().uuid({ message: "Publicador inválido" }),
+  fecha_inicio: fechaStr,
+  fecha_fin: fechaStr,
+  motivo: z.string().max(200).optional().nullable(),
+});
+
 export const MAX_JWPUB_BYTES = 25 * 1024 * 1024;
 
 export function isJwpubFilename(name: string): boolean {

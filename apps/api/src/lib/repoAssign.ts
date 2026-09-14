@@ -10,6 +10,7 @@ import {
 } from "../../../../packages/db/schema.js";
 import { listMeetings, type ListedMeeting } from "./repoNeon.js";
 import { listPrayers, type Prayer } from "./prayersStore.js";
+import { listUnavailability, type Unavailability } from "./unavailabilityStore.js";
 
 // Fase 2B — operações Neon para assign/publish/sync.
 // Filtro app-level obrigatório (RLS ainda comentado).
@@ -25,6 +26,7 @@ export interface NeonPartHit {
     needsReview: boolean;
   };
   meetingEstado: string;
+  meetingFecha: string;
 }
 
 export interface NeonPublisher {
@@ -89,6 +91,7 @@ export async function findNeonPart(
         needsReview: p.needsReview,
       },
       meetingEstado: m.estado,
+      meetingFecha: m.fecha,
     };
   } catch {
     return null;
@@ -311,6 +314,7 @@ export interface SyncData {
   assignments: AssignRow[];
   warnings: WarningRow[];
   prayers: Prayer[];
+  unavailability: Unavailability[];
 }
 
 // Dados brutos do sync (filtro de data aplicado no builder,
@@ -332,6 +336,7 @@ export async function fetchNeonSyncData(
     const wAll = await db.select().from(warnings);
     const wRows = wAll.filter((w) => meetingIds.has(w.meetingId));
     const prayers = await listPrayers(congregationId);
+    const unavailability = await listUnavailability(congregationId);
     return {
       meetings: listed.meetings,
       assignments: aRows.map((a) => ({
@@ -353,6 +358,7 @@ export async function fetchNeonSyncData(
         created_at: iso(w.createdAt),
       })),
       prayers,
+      unavailability,
     };
   } catch {
     return null;
