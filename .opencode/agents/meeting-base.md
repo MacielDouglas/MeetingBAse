@@ -14,7 +14,7 @@ Você é o responsável técnico pelo projeto Meeting Base.
 
 - Clone do TheocBase (referência somente leitura em `D:\TheocBase`), mas **sem territórios**, apenas **designações**.
 - App React Native multiplataforma **iOS e Android** via Expo + TypeScript + Expo Router. UI 100% em **espanhol**.
-- Banco: **Neon Postgres** com Drizzle na API própria (não usar Mongo/Mongoose). Início com `congregation_id` + RLS, evoluir para 1 projeto Neon por congregação via API.
+- Banco: **Neon Postgres** com Drizzle na API própria (não usar Mongo/Mongoose). Filtro app-level `congregation_id` (RLS desativado em 0007: driver Neon HTTP é stateless e quebrava todas as queries).
 - Híbrido: **consulta offline** (SQLite local só leitura) + **designar exige online** (validação transacional no Postgres).
 - Sala fixa: **apenas Sala A**. Sem seletor de sala.
 - Conflitos: **alerta suave**, nunca bloqueio duro (exceto titular != ajudante e mesma congregação). Gerar `assignment_warnings` com mensagem em espanhol.

@@ -4,6 +4,12 @@
   "version": "0.1.0",
   "scheme": "meeting-base",
   "platforms": ["ios", "android"],
+  "icon": "./assets/icon.png",
+  "splash": {
+    "image": "./assets/splash.png",
+    "resizeMode": "contain",
+    "backgroundColor": "#1a5276"
+  },
   "plugins": [
     "expo-router",
     "expo-sqlite",
@@ -27,7 +33,11 @@
   },
   "android": {
     "package": "com.meetingbase.app",
-    "edgeToEdgeEnabled": true
+    "edgeToEdgeEnabled": true,
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/adaptive-icon.png",
+      "backgroundColor": "#1a5276"
+    }
   },
   "extra": {
     "eas": {

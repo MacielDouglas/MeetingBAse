@@ -1,0 +1,17 @@
+# Maestro smoke test — Meeting Base (manual, requer API + Expo rodando).
+# Credenciais via env: MAESTRO_EMAIL e MAESTRO_PASSWORD.
+# Roda: maestro test maestro/smoke.yaml
+appId: com.meetingbase.app
+---
+- launchApp
+- assertVisible: "Iniciar sesión"
+- tapOn: "Email"
+- inputText: ${MAESTRO_EMAIL}
+- tapOn: "Contraseña"
+- inputText: ${MAESTRO_PASSWORD}
+- tapOn: "Iniciar sesión"
+- assertVisible: "Inicio"
+- tapOn: "Progr.*"
+- assertVisible: "Programa"
+- tapOn: "Sincronizar"
+- assertVisible: "Sincronizado"

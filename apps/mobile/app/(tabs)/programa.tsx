@@ -9,6 +9,7 @@ import { useAuth, authHeaders, getCongregationId } from "../../lib/auth";
 import { API_URL, isNetworkError } from "../../lib/api";
 import { usePrograma } from "../../hooks/usePrograma";
 import { makePubNameResolver, usePublishers } from "../../hooks/usePublishers";
+import { SkeletonRow } from "../../components/Skeleton";
 import es from "../../i18n/es.json";
 
 function estadoLabel(estado: string): string {
@@ -71,7 +72,7 @@ export default function Programa() {
         </Text>
       ) : null}
 
-      {isPending ? <Text>{es["Cargando programa..."]}</Text> : null}
+      {isPending ? <SkeletonRow lines={5} /> : null}
       {isError && meetings.length === 0 ? (
         <Text>
           {(error as Error)?.message ?? es["Error al cargar el programa"]}

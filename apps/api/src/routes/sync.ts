@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { congIdParam } from "../lib/validators.js";
-import { syncCongregation } from "../lib/assignFlow.js";
+import { syncCongregation } from "../lib/syncFlow.js";
 
 // Fase 2B: sync real para leitura offline (SQLite).
 // Best-effort: meetings/parts sem coluna de data vêm completos

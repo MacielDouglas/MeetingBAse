@@ -5,13 +5,9 @@
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { getSync, isNetworkError } from "../lib/api";
-import {
-  getLastSince,
-  initDb,
-  loadPrograma,
-  saveSyncPayload,
-  type ProgramaMeeting,
-} from "../lib/db";
+import { getLastSince, initDb } from "../lib/db";
+import { saveSyncPayload } from "../lib/dbSync";
+import { loadPrograma, type ProgramaMeeting } from "../lib/dbPrograma";
 
 export interface ProgramaData {
   meetings: ProgramaMeeting[];
