@@ -90,6 +90,7 @@ export interface DraftMeeting {
 export interface ConfirmResult {
   job_id: string;
   estado: string;
+  persistencia?: "neon" | "memoria";
   meetings: DraftMeeting[];
 }
 

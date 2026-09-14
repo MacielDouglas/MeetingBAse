@@ -88,5 +88,7 @@
   "Generar documento": "Generar documento",
   "Compartir": "Compartir",
   "Documento generado": "Documento generado",
-  "Perfil": "Perfil"
+  "Perfil": "Perfil",
+  "Persistencia": "Persistencia",
+  "Solo en memoria (reiniciar la API lo borra)": "Solo en memoria (reiniciar la API lo borra)"
 }

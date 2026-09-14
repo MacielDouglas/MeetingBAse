@@ -213,6 +213,14 @@ export default function Importar() {
           <Text style={{ fontSize: 16, fontWeight: "bold" }}>
             {es["Importación confirmada"]} ({result.meetings.length})
           </Text>
+          <Text>
+            {es["Persistencia"]}: {result.persistencia ?? "memoria"}
+          </Text>
+          {result.persistencia !== "neon" ? (
+            <Text style={{ color: "#b45309" }}>
+              {es["Solo en memoria (reiniciar la API lo borra)"]}
+            </Text>
+          ) : null}
           {result.meetings.map((m) => (
             <View
               key={m.id}
