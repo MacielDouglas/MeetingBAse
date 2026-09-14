@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — Escala WE elegante — !DATE!</title>
+<style>
+  body { font-family: Georgia, serif; margin: 24px; font-size: 13px; color: #222; }
+  h1 { font-size: 17px; border-bottom: 2px solid #7d3c98; padding-bottom: 6px; }
+  h2 { font-size: 14px; color: #fff; background: #7d3c98; padding: 4px 8px; margin: 12px 0 4px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 5px 6px; border-bottom: 1px dotted #ccc; vertical-align: top; }
+  .time { color: #7d3c98; font-weight: bold; white-space: nowrap; width: 52px; }
+  .who { font-style: italic; color: #444; }
+</style>
+</head>
+<body>
+<h1>!CONGREGATION_TITLE! — !TITLE! — !DATE!</h1>
+<h2>Discurso público</h2>
+<table>
+<tr><td class="time">!SONG1_STARTTIME!</td><td>!SONG1!</td></tr>
+<tr><td class="time"></td><td>Oración: <span class="who">!PRAYER1_NAME!</span></td></tr>
+<tr><td class="time">!PT_STARTTIME!</td><td><b>!PT_THEME!</b><br><span class="who">!PT_SPEAKER!</span></td></tr>
+</table>
+<h2>Estudio de La Atalaya</h2>
+<table>
+<tr><td class="time">!SONG2_STARTTIME!</td><td>!SONG2!</td></tr>
+<tr><td class="time">!WT_STARTTIME!</td><td><b>!WT_THEME!</b><br>Conductor: <span class="who">!WT_CONDUCTOR!</span></td></tr>
+<tr><td class="time">!SONG3_STARTTIME!</td><td>!SONG3!</td></tr>
+<tr><td class="time"></td><td>Oración: <span class="who">!PRAYER2_NAME!</span></td></tr>
+</table>
+</body>
+</html>

@@ -32,6 +32,20 @@ describe("renderTemplate", () => {
     const repeats = [{ key: "ITEMS", rows: [{ NAME: "A" }, { NAME: "B" }] }];
     expect(renderTemplate(html, vars, repeats)).toBe("A B ");
   });
+
+  it("handles !REPEAT_START! variant", () => {
+    const html = "!REPEAT_START!ITEMS!!NAME! !REPEAT_END!";
+    const vars = {};
+    const repeats = [{ key: "ITEMS", rows: [{ NAME: "A" }, { NAME: "B" }] }];
+    expect(renderTemplate(html, vars, repeats)).toBe("A B ");
+  });
+
+  it("handles EMPTY conditionals", () => {
+    const html = "#IF !PRAYER1_NAME! EMPTY#sin oración#ELSE#!PRAYER1_NAME!#ENDIF#";
+    expect(renderTemplate(html, { PRAYER1_NAME: "" })).toBe("sin oración");
+    expect(renderTemplate(html, { PRAYER1_NAME: "Juan" })).toBe("Juan");
+    expect(renderTemplate(html, {})).toBe("sin oración");
+  });
 });
 
 describe("meetingToVars", () => {
@@ -71,5 +85,16 @@ describe("meetingToVars", () => {
     const assigns = [{ part_id: "p1", titular_name: "Carlos Méndez" }];
     const vars = meetingToVars(meeting, undefined, undefined, assigns);
     expect(vars.GW1_SPEAKER).toBe("Carlos Méndez");
+  });
+
+  it("tolerates camelCase parts (memoria)", () => {
+    const meeting = {
+      parts: [
+        { id: "p1", tipoClave: "mwb_tgw_talk", titulo: "Tema", duracionMin: 10, horaInicio: "19:04" },
+      ],
+    };
+    const vars = meetingToVars(meeting);
+    expect(vars.GW1_THEME).toBe("Tema");
+    expect(vars.GW1_STARTTIME).toBe("19:04");
   });
 });
