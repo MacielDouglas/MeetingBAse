@@ -11,6 +11,13 @@ import {
 import { listMeetings, type ListedMeeting } from "./repoNeon.js";
 import { listPrayers, type Prayer } from "./prayersStore.js";
 import { listUnavailability, type Unavailability } from "./unavailabilityStore.js";
+import {
+  getSongCatalog,
+  getTalkCatalog,
+  loadCatalogsFromDb,
+  type SongCatalogEntry,
+  type TalkCatalogEntry,
+} from "./importStore.js";
 
 // Fase 2B — operações Neon para assign/publish/sync.
 // Filtro app-level obrigatório (RLS ainda comentado).
@@ -315,6 +322,8 @@ export interface SyncData {
   warnings: WarningRow[];
   prayers: Prayer[];
   unavailability: Unavailability[];
+  songs: SongCatalogEntry[];
+  talks: TalkCatalogEntry[];
 }
 
 // Dados brutos do sync (filtro de data aplicado no builder,
@@ -337,6 +346,12 @@ export async function fetchNeonSyncData(
     const wRows = wAll.filter((w) => meetingIds.has(w.meetingId));
     const prayers = await listPrayers(congregationId);
     const unavailability = await listUnavailability(congregationId);
+    // Catálogos sjj/S-34: recarrega do Neon (memória zera no restart).
+    try {
+      await loadCatalogsFromDb(congregationId);
+    } catch {
+      // best-effort
+    }
     return {
       meetings: listed.meetings,
       assignments: aRows.map((a) => ({
@@ -359,6 +374,8 @@ export async function fetchNeonSyncData(
       })),
       prayers,
       unavailability,
+      songs: getSongCatalog(congregationId),
+      talks: getTalkCatalog(congregationId),
     };
   } catch {
     return null;

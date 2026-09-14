@@ -10,7 +10,7 @@ import {
   type TemplateVars,
   type TemplateRepeat,
 } from "../lib/templateEngine.js";
-import { listConfirmedMeetings, getSongCatalog, getTalkCatalog } from "../lib/importStore.js";
+import { listConfirmedMeetings, getSongCatalog, getTalkCatalog, loadCatalogsFromDb } from "../lib/importStore.js";
 import { listSpeakers } from "../lib/speakersStore.js";
 import { getAssignmentsWithNames } from "../lib/repoAssign.js";
 import { fileURLToPath } from "node:url";
@@ -67,6 +67,11 @@ export async function generateRoutes(app: FastifyInstance) {
       const meetings = listConfirmedMeetings(params.data.id);
       const meeting = meetings.find((m) => m.id === body.data.meeting_id);
       if (meeting) {
+        try {
+          await loadCatalogsFromDb(params.data.id);
+        } catch {
+          // best-effort
+        }
         const songs = getSongCatalog(params.data.id);
         const talks = getTalkCatalog(params.data.id);
         const assigns = await getAssignmentsWithNames(params.data.id, meeting.id);

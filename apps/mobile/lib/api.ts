@@ -338,6 +338,11 @@ export interface SyncPrayer {
   publisher_id: string | null;
 }
 
+export interface SyncCatalogEntry {
+  number: number;
+  title: string;
+}
+
 export interface SyncUnavailability {
   id: string;
   congregation_id?: string;
@@ -355,6 +360,8 @@ export interface SyncPayload {
   warnings: SyncWarning[];
   prayers?: SyncPrayer[];
   unavailability?: SyncUnavailability[];
+  songs?: SyncCatalogEntry[];
+  talks?: SyncCatalogEntry[];
   filtrado: boolean;
   persistencia?: "neon" | "memoria";
   all_meeting_ids?: string[];

@@ -28,6 +28,8 @@ export async function syncRoutes(app: FastifyInstance) {
         warnings: [],
         prayers: [],
         unavailability: [],
+        songs: [],
+        talks: [],
         filtrado: false,
         persistencia: "memoria" as const,
       };

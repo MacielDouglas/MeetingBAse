@@ -83,6 +83,18 @@ export async function initDb(): Promise<void> {
       fecha_fin TEXT NOT NULL,
       motivo TEXT
     );
+    CREATE TABLE IF NOT EXISTS song_catalog (
+      congregation_id TEXT NOT NULL,
+      number INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      PRIMARY KEY (congregation_id, number)
+    );
+    CREATE TABLE IF NOT EXISTS talk_catalog (
+      congregation_id TEXT NOT NULL,
+      number INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      PRIMARY KEY (congregation_id, number)
+    );
     CREATE INDEX IF NOT EXISTS idx_parts_meeting ON parts(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_assign_meeting ON assignments(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_warn_meeting ON warnings(meeting_id);
@@ -279,6 +291,29 @@ export async function saveSyncPayload(
         (u.motivo as string | null) ?? null
       );
     }
+    // Catálogos sjj/S-34: sempre completos — substitui por congregação.
+    d.runSync("DELETE FROM song_catalog WHERE congregation_id = ?", congregationId);
+    for (const s of payload.songs ?? []) {
+      if (typeof s.number === "number" && s.number > 0 && s.title) {
+        d.runSync(
+          "INSERT OR REPLACE INTO song_catalog (congregation_id, number, title) VALUES (?, ?, ?)",
+          congregationId,
+          s.number,
+          str(s.title)
+        );
+      }
+    }
+    d.runSync("DELETE FROM talk_catalog WHERE congregation_id = ?", congregationId);
+    for (const t of payload.talks ?? []) {
+      if (t.title) {
+        d.runSync(
+          "INSERT OR REPLACE INTO talk_catalog (congregation_id, number, title) VALUES (?, ?, ?)",
+          congregationId,
+          typeof t.number === "number" ? t.number : 0,
+          str(t.title)
+        );
+      }
+    }
     d.runSync(
       "INSERT OR REPLACE INTO sync_meta (congregation_id, last_since, updated_at) VALUES (?, ?, ?)",
       congregationId,
@@ -406,6 +441,18 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
     list.push({ id: pr.id, tipo: pr.tipo, publisher_id: pr.publisher_id });
     prayersByMeeting.set(pr.meeting_id, list);
   }
+  // Catálogo de cânticos: "Canción N" → "Canción N — Título".
+  const songs = d.getAllSync<{ number: number; title: string }>(
+    "SELECT number, title FROM song_catalog WHERE congregation_id = ?",
+    congregationId
+  );
+  const songByNumber = new Map(songs.map((s) => [s.number, s.title]));
+  function songTitle(titulo: string): string {
+    const m = /^Canción (\d+)$/.exec(titulo.trim());
+    if (!m) return titulo;
+    const title = songByNumber.get(Number(m[1]));
+    return title ? `Canción ${m[1]} — ${title}` : titulo;
+  }
   const warnsByPart = new Map<string, ProgramaWarning[]>();
   for (const w of ws) {
     const k = w.part_id ?? `${w.meeting_id}::${w.publisher_id}`;
@@ -423,7 +470,7 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
       orden: p.orden,
       seccion: p.seccion,
       tipo_clave: p.tipo_clave,
-      titulo: p.titulo,
+      titulo: songTitle(p.titulo),
       sala: p.sala,
       requiere_ayudante: p.requiere_ayudante === 1,
       needs_review: p.needs_review === 1,

@@ -376,12 +376,15 @@ export function buildSyncPayload(
 async function memSyncData(congId: string): Promise<SyncData> {
   const { listPrayers } = await import("./prayersStore.js");
   const { listUnavailability } = await import("./unavailabilityStore.js");
+  const { getSongCatalog, getTalkCatalog } = await import("./importStore.js");
   return {
     meetings: listMemDetailed(congId),
     assignments: listMemAssignments(congId),
     warnings: listMemWarnings(congId),
     prayers: await listPrayers(congId),
     unavailability: await listUnavailability(congId),
+    songs: getSongCatalog(congId),
+    talks: getTalkCatalog(congId),
   };
 }
 
@@ -390,11 +393,19 @@ export async function syncCongregation(congId: string, sinceRaw: string | null) 
     try {
       const d = await fetchNeonSyncData(congId);
       if (d && d.meetings.length > 0)
-        return buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "neon", d.prayers, d.unavailability);
+        return {
+          ...buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "neon", d.prayers, d.unavailability),
+          songs: d.songs,
+          talks: d.talks,
+        };
     } catch {
       // cai para memória
     }
   }
   const d = await memSyncData(congId);
-  return buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "memoria", d.prayers, d.unavailability);
+  return {
+    ...buildSyncPayload(d.meetings, d.assignments, d.warnings, sinceRaw, "memoria", d.prayers, d.unavailability),
+    songs: d.songs,
+    talks: d.talks,
+  };
 }
