@@ -148,6 +148,33 @@ export default function Asignar() {
     onError: (e) => setPrayerMsg((e as Error).message),
   });
 
+  // ── Auto-asignar todas ──
+  const [autoAssignResult, setAutoAssignResult] = useState<string | null>(null);
+  const autoAssignMut = useMutation({
+    mutationFn: async () => {
+      if (!meeting) return;
+      let assigned = 0;
+      let skipped = 0;
+      for (const p of assignableParts) {
+        if (p.titular_id) { skipped++; continue; }
+        try {
+          const candidates = await suggestCandidates(congId, p.id);
+          if (candidates.length === 0) { skipped++; continue; }
+          await assignPart(congId, p.id, { titular_id: candidates[0].id, ayudante_id: null });
+          assigned++;
+        } catch {
+          skipped++;
+        }
+      }
+      return `${es["Asignaciones"]}: ${assigned}, ${es["Omitidas"]}: ${skipped}`;
+    },
+    onSuccess: async (msg) => {
+      setAutoAssignResult(msg ?? null);
+      await client.invalidateQueries({ queryKey: ["programa", congId] });
+    },
+    onError: (e) => setAutoAssignResult((e as Error).message),
+  });
+
   // Parte do presidente (wk_presidente se existir na reunião)
   const presPart = meeting?.parts.find((p) => p.tipo_clave === "wk_presidente") ?? null;
 
@@ -285,6 +312,20 @@ export default function Asignar() {
               );
             })}
             {prayerMsg ? <Text>{prayerMsg}</Text> : null}
+          </View>
+
+          {/* ── 5. Auto-asignar todas ── */}
+          <View style={{ gap: 8, marginTop: 8, padding: 12, backgroundColor: "#eaf2f8", borderRadius: 8, borderWidth: 1, borderColor: "#aed6f1" }}>
+            <Text style={{ fontWeight: "bold", fontSize: 14 }}>{es["Asignar todas"]}</Text>
+            <Text style={{ fontSize: 12, color: "#666" }}>
+              Asigna automáticamente las partes sin titular usando sugerencias del servidor.
+            </Text>
+            <Button
+              title={autoAssignMut.isPending ? es["Asignando todas..."] : es["Asignar todas"]}
+              onPress={() => autoAssignMut.mutate()}
+              disabled={autoAssignMut.isPending || offline}
+            />
+            {autoAssignResult ? <Text style={{ fontSize: 12, color: "#27ae60" }}>{autoAssignResult}</Text> : null}
           </View>
         </View>
       ) : null}
