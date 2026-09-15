@@ -14,6 +14,7 @@ import {
   isNetworkError,
   savePrayer,
   suggestCandidates,
+  suggestHelpers,
   type AssignResult,
   type PublisherHistory,
   type SuggestCandidate,
@@ -75,9 +76,10 @@ function filterHelpers(
   if (!titular) return [];
   return pubs.filter((p) => {
     if (p.id === titularId) return false;
+    // Family cross-validation: family members can't be helpers together
+    if (titular.familiaId && p.familiaId && titular.familiaId === p.familiaId) return false;
     if (f.helperSameSex) {
-      const sameFamily = titular.familiaId && p.familiaId && titular.familiaId === p.familiaId;
-      if (p.sexo.trim().toLowerCase() !== titular.sexo.trim().toLowerCase() && !sameFamily) return false;
+      if (p.sexo.trim().toLowerCase() !== titular.sexo.trim().toLowerCase()) return false;
     }
     return true;
   });
@@ -432,6 +434,7 @@ function PartCard({
   const [localTitular, setLocalTitular] = useState<string | null>(part.titular_id);
   const [localAyudante, setLocalAyudante] = useState<string | null>(part.ayudante_id);
   const [suggestMsg, setSuggestMsg] = useState<string | null>(null);
+  const [helperSuggestMsg, setHelperSuggestMsg] = useState<string | null>(null);
   const [result, setResult] = useState<AssignResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -478,6 +481,16 @@ function PartCard({
       setSuggestMsg(list.slice(0, 3).map((c) => `${c.nombre} (${c.motivo})`).join(" · "));
     },
     onError: (e) => setSuggestMsg((e as Error).message),
+  });
+
+  const suggestHelperMut = useMutation({
+    mutationFn: () => suggestHelpers(congId, part.id, localTitular as string),
+    onSuccess: (list: SuggestCandidate[]) => {
+      if (list.length === 0) { setHelperSuggestMsg(es["Sin candidatos"]); return; }
+      setLocalAyudante(list[0].id);
+      setHelperSuggestMsg(list.slice(0, 3).map((c) => `${c.nombre} (${c.motivo})`).join(" · "));
+    },
+    onError: (e) => setHelperSuggestMsg((e as Error).message),
   });
 
   const hist = useQuery({
@@ -538,6 +551,12 @@ function PartCard({
           {needsHelper ? (
             <>
               <Text style={{ fontWeight: "600" }}>{es["Ayudante"]}</Text>
+              <Button
+                title={suggestHelperMut.isPending ? es["Sugiriendo ayudante..."] : es["Sugerir ayudante"]}
+                onPress={() => { setHelperSuggestMsg(null); suggestHelperMut.mutate(); }}
+                disabled={suggestHelperMut.isPending || offline || !localTitular}
+              />
+              {helperSuggestMsg ? <Text style={{ fontSize: 12, color: "#666" }}>{helperSuggestMsg}</Text> : null}
               <FlatList
                 data={helperEligible}
                 keyExtractor={(item) => item.id}
