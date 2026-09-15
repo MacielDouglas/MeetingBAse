@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, FlatList, Text, TextInput, View, Alert } from "react-native";
+import { Button, FlatList, Text, TextInput, View, Alert, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
 import { fmtDate } from "../../lib/formatDate";
@@ -17,6 +18,7 @@ const ESTADO_LABELS: Record<string, string> = {
 };
 
 export default function VisitsScreen() {
+  const router = useRouter();
   const congId = getCongregationId();
   const queryClient = useQueryClient();
   const [speakerId, setSpeakerId] = useState("");
@@ -148,7 +150,12 @@ export default function VisitsScreen() {
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Visitas de falantes"]}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Visitas de falantes"]}</Text>
+      </View>
 
       <Button
         title={showForm ? es["Cancelar"] : editingId ? es["Actualizar visita"] : `+ ${es["Nueva visita"]}`}

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, FlatList, Text, View, Alert, ScrollView } from "react-native";
+import { Button, FlatList, Text, View, Alert, ScrollView, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
@@ -13,6 +14,7 @@ import es from "../../i18n/es.json";
 interface Template { id: string; name: string; description: string; }
 
 export default function ExportarScreen() {
+  const router = useRouter();
   const congId = getCongregationId();
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
@@ -95,7 +97,12 @@ export default function ExportarScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Exportar"]}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Exportar"]}</Text>
+      </View>
 
       {/* Seletor de reunião */}
       <View style={{ gap: 4 }}>

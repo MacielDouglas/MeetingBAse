@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Alert, Button, ScrollView, Text, View } from "react-native";
+import { Alert, Button, ScrollView, Text, View, TouchableOpacity } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
+import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
 import { fmtDate } from "../../lib/formatDate";
@@ -33,6 +34,7 @@ export default function Importar() {
   const [result, setResult] = useState<ConfirmResult | null>(null);
   const [offline, setOffline] = useState(false);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const uploaded = useQuery({
     queryKey: ["uploadedFiles", getCongregationId()],
@@ -118,7 +120,12 @@ export default function Importar() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Importar"]}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Importar"]}</Text>
+      </View>
       <Text style={{ fontSize: 12, color: "#666" }}>API: {API_URL}</Text>
 
       {/* Uploaded files list */}

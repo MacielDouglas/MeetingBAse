@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, FlatList, Text, TextInput, View, Alert } from "react-native";
+import { Button, FlatList, Text, TextInput, View, Alert, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
 import { SearchBar } from "../../components/SearchBar";
@@ -26,6 +27,7 @@ const CARGO_LABELS: Record<string, string> = {
 export default function PublishersScreen() {
   const congId = getCongregationId();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [nombre, setNombre] = useState("");
   const [sexo, setSexo] = useState<"M" | "F">("M");
   const [cargo, setCargo] = useState<string>("publicador");
@@ -154,7 +156,12 @@ export default function PublishersScreen() {
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Publicadores"]}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Publicadores"]}</Text>
+      </View>
 
       <Button
         title={showForm ? es["Cancelar"] : editingId ? es["Editar"] : `+ ${es["Nuevo publicador"]}`}

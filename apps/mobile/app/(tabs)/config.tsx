@@ -1,8 +1,9 @@
 // Tela de Configuração: horários, eventos especiais, exceções de agenda.
-// Fase 12 — iOS + Android (Expo).
+// Fase 30 — iOS + Android (Expo).
 
 import { useState, useEffect, useCallback } from "react";
 import { Button, ScrollView, Text, View, TouchableOpacity, Alert, TextInput } from "react-native";
+import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
 import {
@@ -270,6 +271,7 @@ function ExceptionForm({
 export default function ConfigScreen() {
   const congId = getCongregationId();
   const client = useQueryClient();
+  const router = useRouter();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["config", congId],
@@ -413,6 +415,28 @@ export default function ConfigScreen() {
           </View>
         ))}
         <ExceptionForm congId={congId} onSuccess={() => refetch()} />
+      </View>
+
+      <View style={{ gap: 8, padding: 12, backgroundColor: "#eaf2f8", borderRadius: 8, borderWidth: 1, borderColor: "#aed6f1" }}>
+        <Text style={{ fontWeight: "bold", fontSize: 15 }}>{es["Ajustes"]}</Text>
+        <TouchableOpacity
+          onPress={() => router.push("/(tabs)/ausencias")}
+          style={{ padding: 12, backgroundColor: "#fff", borderRadius: 6, borderWidth: 1, borderColor: "#ddd" }}
+        >
+          <Text style={{ fontSize: 14 }}>{es["Ausencias"]}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/(tabs)/visits")}
+          style={{ padding: 12, backgroundColor: "#fff", borderRadius: 6, borderWidth: 1, borderColor: "#ddd" }}
+        >
+          <Text style={{ fontSize: 14 }}>{es["Visitas"]}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/(tabs)/profile")}
+          style={{ padding: 12, backgroundColor: "#fff", borderRadius: 6, borderWidth: 1, borderColor: "#ddd" }}
+        >
+          <Text style={{ fontSize: 14 }}>{es["Perfil"]}</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

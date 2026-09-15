@@ -4,6 +4,7 @@
 
 import { useState, useMemo } from "react";
 import { Button, FlatList, ScrollView, Text, View, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
 import {
@@ -158,6 +159,7 @@ export default function Asignar() {
   const congId = getCongregationId();
   const { meetings, offline } = usePrograma(congId);
   const client = useQueryClient();
+  const router = useRouter();
   const [meetingId, setMeetingId] = useState<string | null>(null);
   const [expandedPart, setExpandedPart] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -291,7 +293,12 @@ export default function Asignar() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Asignar"]}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Asignar"]}</Text>
+      </View>
       {offline ? <Text style={{ color: "#e74c3c" }}>{es["Sin conexión — verifique la IP del servidor"]}</Text> : null}
 
       {meetings.length === 0 ? <Text>{es["Sin reuniones todavía"]}</Text> : null}

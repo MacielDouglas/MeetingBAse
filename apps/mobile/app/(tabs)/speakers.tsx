@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, FlatList, Text, TextInput, View, Alert } from "react-native";
+import { Button, FlatList, Text, TextInput, View, Alert, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
 import { SearchBar } from "../../components/SearchBar";
@@ -19,6 +20,7 @@ interface Speaker {
 export default function SpeakersScreen() {
   const congId = getCongregationId();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [celular, setCelular] = useState("");
@@ -139,7 +141,12 @@ export default function SpeakersScreen() {
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Falantes públicos"]}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Falantes públicos"]}</Text>
+      </View>
 
       <Button
         title={showForm ? es["Cancelar"] : editingId ? es["Actualizar orador"] : `+ ${es["Nuevo falante"]}`}

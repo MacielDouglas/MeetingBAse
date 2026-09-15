@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Button, FlatList, Text, TextInput, View } from "react-native";
+import { Alert, Button, FlatList, Text, TextInput, View, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createUnavailability,
@@ -21,6 +22,7 @@ interface Unavailability {
 }
 
 export default function AusenciasScreen() {
+  const router = useRouter();
   const congId = getCongregationId();
   const client = useQueryClient();
   const [publisherId, setPublisherId] = useState<string | null>(null);
@@ -92,7 +94,12 @@ export default function AusenciasScreen() {
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Ausencias"]}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Ausencias"]}</Text>
+      </View>
 
       <Text style={{ fontWeight: "bold" }}>{es["Publicador"]}</Text>
       <FlatList

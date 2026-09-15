@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Text, View, StyleSheet, TextInput, Pressable, Alert, ScrollView } from "react-native";
+import { Text, View, StyleSheet, TextInput, Pressable, Alert, ScrollView, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { updateProfile } from "../../lib/api";
 import es from "../../i18n/es.json";
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const [nombre, setNombre] = useState(user?.nombre ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
@@ -38,6 +40,12 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={s.container}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Perfil"]}</Text>
+      </View>
       <Text style={s.title}>{es["Nombre"]}</Text>
       <TextInput
         value={nombre}

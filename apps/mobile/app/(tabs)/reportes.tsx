@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Text, View, ScrollView, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { usePrograma } from "../../hooks/usePrograma";
 import { getCongregationId } from "../../lib/api";
 import { usePublishers } from "../../hooks/usePublishers";
@@ -18,6 +19,7 @@ function fechaCorte(p: Periodo): string {
 }
 
 export default function Reportes() {
+  const router = useRouter();
   const congId = getCongregationId();
   const { meetings } = usePrograma(congId);
   const pubs = usePublishers(congId);
@@ -68,7 +70,12 @@ export default function Reportes() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Reportes"]}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Reportes"]}</Text>
+      </View>
 
       {/* Selector período */}
       <View style={{ flexDirection: "row", gap: 8 }}>
