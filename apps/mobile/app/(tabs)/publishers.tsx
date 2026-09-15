@@ -1,42 +1,37 @@
 import { useState } from "react";
-import { Button, FlatList, Text, TextInput, View, Alert, TouchableOpacity } from "react-native";
+import { FlatList, Text, View, Alert, TouchableOpacity, TextInput } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
 import { SearchBar } from "../../components/SearchBar";
 import { SkeletonRow } from "../../components/Skeleton";
+import { PublisherEdit } from "../../components/PublisherEdit";
+import { usePublishers } from "../../hooks/usePublishers";
 import es from "../../i18n/es.json";
 
 interface Publisher {
   id: string;
   nombre: string;
+  apellido?: string;
   sexo: string;
-  cargo: string;
+  activo: boolean;
+  celular?: string;
   telefono?: string;
   email?: string;
-  activo: boolean;
   familiaId?: string | null;
+  siervo?: boolean;
+  anciano?: boolean;
+  [key: string]: unknown;
 }
-
-const CARGO_LABELS: Record<string, string> = {
-  anciano: es["Anciano"],
-  siervo_ministerial: es["Siervo ministerial"],
-  publicador: es["Publicador"],
-};
 
 export default function PublishersScreen() {
   const congId = getCongregationId();
   const queryClient = useQueryClient();
   const router = useRouter();
-  const [nombre, setNombre] = useState("");
-  const [sexo, setSexo] = useState<"M" | "F">("M");
-  const [cargo, setCargo] = useState<string>("publicador");
-  const [telefono, setTelefono] = useState("");
-  const [email, setEmail] = useState("");
-  const [familiaId, setFamiliaId] = useState("");
-  const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editVisible, setEditVisible] = useState(false);
+  const [selectedPub, setSelectedPub] = useState<Publisher | null>(null);
 
   const pubs = useQuery({
     queryKey: ["publishers", congId],
@@ -46,48 +41,6 @@ export default function PublishersScreen() {
       });
       const body = await res.json();
       return (body.publishers ?? []) as Publisher[];
-    },
-  });
-
-  const create = useMutation({
-    mutationFn: async (data: { nombre: string; sexo: string; cargo: string; telefono?: string; email?: string; familiaId?: string | null }) => {
-      const res = await fetch(`${API_URL}/c/${congId}/publishers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify(data),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? es["Error al crear"]);
-      return body.publisher;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["publishers", congId] });
-      resetForm();
-    },
-    onError: (e) => {
-      const msg = isNetworkError(e) ? es["Sin conexión. Intente más tarde."] : (e as Error).message;
-      Alert.alert(es["Error"], msg);
-    },
-  });
-
-  const update = useMutation({
-    mutationFn: async (data: { id: string; nombre: string; sexo: string; cargo: string; telefono?: string; email?: string; familiaId?: string | null }) => {
-      const res = await fetch(`${API_URL}/c/${congId}/publishers/${data.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify(data),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? es["Error al crear"]);
-      return body.publisher;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["publishers", congId] });
-      resetForm();
-    },
-    onError: (e) => {
-      const msg = isNetworkError(e) ? es["Sin conexión. Intente más tarde."] : (e as Error).message;
-      Alert.alert(es["Error"], msg);
     },
   });
 
@@ -108,126 +61,59 @@ export default function PublishersScreen() {
     },
   });
 
-  function resetForm() {
-    setNombre("");
-    setSexo("M");
-    setCargo("publicador");
-    setTelefono("");
-    setEmail("");
-    setFamiliaId("");
-    setShowForm(false);
-    setEditingId(null);
-  }
-
-  function handleCreate() {
-    if (!nombre.trim()) {
-      Alert.alert(es["Error"], es["Nombre requerido"]);
-      return;
-    }
-    const payload = {
-      nombre: nombre.trim(),
-      sexo,
-      cargo,
-      telefono: telefono || undefined,
-      email: email || undefined,
-      familiaId: familiaId || null,
-    };
-    if (editingId) {
-      update.mutate({ id: editingId, ...payload });
-    } else {
-      create.mutate(payload);
-    }
-  }
-
-  function handleEdit(pub: Publisher) {
-    setEditingId(pub.id);
-    setNombre(pub.nombre);
-    setSexo(pub.sexo as "M" | "F");
-    setCargo(pub.cargo);
-    setTelefono(pub.telefono ?? "");
-    setEmail(pub.email ?? "");
-    setFamiliaId(pub.familiaId ?? "");
-    setShowForm(true);
-  }
-
   const filtered = (pubs.data ?? []).filter(
-    (p) => !search || p.nombre.toLowerCase().includes(search.toLowerCase())
+    (p) => {
+      const fullName = `${p.nombre} ${p.apellido ?? ""}`.toLowerCase();
+      return !search || fullName.includes(search.toLowerCase());
+    }
   );
 
+  function handleEdit(pub: Publisher) {
+    setSelectedPub(pub);
+    setEditVisible(true);
+  }
+
+  function handleNew() {
+    setSelectedPub(null);
+    setEditVisible(true);
+  }
+
   return (
-    <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+    <View style={{ flex: 1, backgroundColor: "#1c1c1e" }}>
+      {/* Header */}
+      <View style={{ backgroundColor: "#1a5276", paddingTop: 56, paddingBottom: 12, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
-          <Text style={{ fontSize: 18 }}>{es["Volver"]}</Text>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Publicadores"]}</Text>
+        <Text style={{ color: "#fff", fontSize: 18, fontWeight: "600" }}>{es["Publicadores"]}</Text>
+        <TouchableOpacity onPress={handleNew} style={{ padding: 8 }}>
+          <Ionicons name="person-add" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
-      <Button
-        title={showForm ? es["Cancelar"] : editingId ? es["Editar"] : `+ ${es["Nuevo publicador"]}`}
-        onPress={() => {
-          if (showForm) {
-            resetForm();
-          } else {
-            setShowForm(true);
-          }
-        }}
-      />
-
-      {showForm && (
-        <View style={{ gap: 8, padding: 12, backgroundColor: "#f5f5f5", borderRadius: 8 }}>
+      {/* Search */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#2c2c2e", borderRadius: 10, paddingHorizontal: 10 }}>
+          <Ionicons name="search" size={18} color="#8e8e93" />
           <TextInput
-            placeholder={es["Nombre"]}
-            value={nombre}
-            onChangeText={setNombre}
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
+            value={search}
+            onChangeText={setSearch}
+            placeholder={es["Buscar publicador..."]}
+            placeholderTextColor="#666"
+            style={{ flex: 1, padding: 10, color: "#fff", fontSize: 15 }}
           />
-          <Text style={{ fontSize: 13, color: "#555" }}>{es["Sexo"]}</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Button title="M" onPress={() => setSexo("M")} color={sexo === "M" ? "#1a5276" : "#ccc"} />
-            <Button title="F" onPress={() => setSexo("F")} color={sexo === "F" ? "#1a5276" : "#ccc"} />
-          </View>
-          <Text style={{ fontSize: 13, color: "#555" }}>{es["Cargo"]}</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {(["publicador", "siervo_ministerial", "anciano"] as const).map((c) => (
-              <Button key={c} title={CARGO_LABELS[c]} onPress={() => setCargo(c)} color={cargo === c ? "#7d3c98" : "#ccc"} />
-            ))}
-          </View>
-          <TextInput
-            placeholder={es["Teléfono (opcional)"]}
-            value={telefono}
-            onChangeText={setTelefono}
-            keyboardType="phone-pad"
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
-          />
-          <TextInput
-            placeholder={es["Email (opcional)"]}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
-          />
-          <TextInput
-            placeholder={es["Familia (opcional)"]}
-            value={familiaId}
-            onChangeText={setFamiliaId}
-            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
-          />
-          <Button
-            title={create.isPending || update.isPending ? es["Creando..."] : editingId ? es["Guardar cambios"] : es["Crear publicador"]}
-            onPress={handleCreate}
-            disabled={create.isPending || update.isPending}
-          />
+          {search ? (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <Ionicons name="close-circle" size={18} color="#8e8e93" />
+            </TouchableOpacity>
+          ) : null}
         </View>
-      )}
+      </View>
 
-      <SearchBar value={search} onChangeText={setSearch} placeholder={es["Buscar publicador..."]} />
-
-      {pubs.isLoading ? <SkeletonRow lines={4} /> : null}
+      {pubs.isLoading ? <SkeletonRow lines={6} /> : null}
 
       {pubs.isError ? (
-        <Text style={{ color: "#e74c3c", textAlign: "center" }}>
+        <Text style={{ color: "#e74c3c", textAlign: "center", marginTop: 20 }}>
           {isNetworkError(pubs.error) ? es["Sin conexión"] : es["Error al cargar"]}
         </Text>
       ) : null}
@@ -237,27 +123,35 @@ export default function PublishersScreen() {
         keyExtractor={(item) => item.id}
         onRefresh={() => pubs.refetch()}
         refreshing={pubs.isFetching && !pubs.isLoading}
-        renderItem={({ item }) => (
-          <View style={{ padding: 12, borderBottomWidth: 1, borderColor: "#eee", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "bold" }}>{item.nombre}</Text>
-              <Text style={{ fontSize: 12, color: "#666" }}>
-                {CARGO_LABELS[item.cargo] ?? item.cargo} · {item.sexo}
-                {item.telefono ? ` · ${item.telefono}` : ""}
-                {item.email ? ` · ${item.email}` : ""}
-              </Text>
-            </View>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Button title={es["Editar"]} onPress={() => handleEdit(item)} />
-              <Button title="X" onPress={() => {
-                Alert.alert(es["Eliminar"], `¿Eliminar ${item.nombre}?`, [
+        contentContainerStyle={{ paddingVertical: 4 }}
+        renderItem={({ item }) => {
+          const isMale = item.sexo === "M";
+          return (
+            <TouchableOpacity
+              onPress={() => handleEdit(item)}
+              onLongPress={() => {
+                Alert.alert(item.nombre, es["Eliminar"], [
                   { text: es["Cancelar"] },
-                  { text: es["Eliminar"], onPress: () => del.mutate(item.id) },
+                  { text: es["Eliminar"], style: "destructive", onPress: () => del.mutate(item.id) },
                 ]);
-              }} />
-            </View>
-          </View>
-        )}
+              }}
+              style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: "#3a3a3c" }}
+            >
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isMale ? "#1a5276" : "#8e2446", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                <Ionicons name="person" size={22} color="#fff" />
+              </View>
+              <Text style={{ color: "#fff", fontSize: 16, flex: 1 }}>{`${item.nombre} ${item.apellido ?? ""}`}</Text>
+              {item.anciano ? <Ionicons name="star" size={16} color="#f0c040" style={{ marginRight: 6 }} /> : null}
+              {item.siervo ? <Ionicons name="shield-checkmark" size={16} color="#4a90d9" /> : null}
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      <PublisherEdit
+        visible={editVisible}
+        onClose={() => { setEditVisible(false); setSelectedPub(null); }}
+        publisher={selectedPub}
       />
     </View>
   );

@@ -10,23 +10,45 @@ import {
   seedPublishers,
 } from "../lib/publishersStore.js";
 
+const boolField = z.boolean().optional();
+
 const publisherBody = z.object({
   nombre: z.string().min(1, { message: "Nombre requerido" }),
+  apellido: z.string().optional(),
   sexo: z.enum(["M", "F"], { message: "Sexo: M o F" }),
-  cargo: z.enum(["anciano", "siervo_ministerial", "publicador"]).optional(),
+  apuntes: z.string().optional(),
+  celular: z.string().optional(),
   telefono: z.string().optional(),
   email: z.string().email().optional(),
   familiaId: z.string().uuid().nullable().optional(),
+  cabezaFamilia: boolField,
+  ministroCampo: z.string().optional(),
+  siervo: boolField,
+  anciano: boolField,
+  oracion: boolField,
+  presidenteEntreSemana: boolField,
+  discursoEntreSemana: boolField,
+  busquemosPerlas: boolField,
+  lecturaBiblia: boolField,
+  empieceConversaciones: boolField,
+  hagaRevisitas: boolField,
+  hagaDiscipulos: boolField,
+  expliqueCreencias: boolField,
+  discursoEnsenanza: boolField,
+  ayudanteEnsenanza: boolField,
+  analisisAuditorio: boolField,
+  discursoAnalisis: boolField,
+  ebc: boolField,
+  lectorEbc: boolField,
+  sala: z.string().optional(),
+  presidenteFinSemana: boolField,
+  conductorAtalaya: boolField,
+  lectorAtalaya: boolField,
+  hospitalidad: boolField,
 });
 
-const updateBody = z.object({
-  nombre: z.string().min(1).optional(),
-  sexo: z.enum(["M", "F"]).optional(),
-  cargo: z.enum(["anciano", "siervo_ministerial", "publicador"]).optional(),
-  telefono: z.string().optional(),
-  email: z.string().email().optional(),
+const updateBody = publisherBody.partial().extend({
   activo: z.boolean().optional(),
-  familiaId: z.string().uuid().nullable().optional(),
 });
 
 export async function publishersRoutes(app: FastifyInstance) {

@@ -12,10 +12,13 @@ import { initDb, loadPublishersCache, savePublishersCache } from "../lib/db";
 export interface PublisherRef {
   id: string;
   nombre: string;
+  apellido?: string;
   sexo: string;
-  cargo: string;
+  cargo?: string;
   activo?: boolean;
   familiaId?: string | null;
+  siervo?: boolean;
+  anciano?: boolean;
 }
 
 export function usePublishers(congId: string | null) {
@@ -56,7 +59,7 @@ export function usePublishers(congId: string | null) {
 
 // Monta resolvedor id -> nombre (offline: cai para os 8 primeiros do UUID).
 export function makePubNameResolver(publishers: PublisherRef[]) {
-  const byId = new Map(publishers.map((p) => [p.id, p.nombre]));
+  const byId = new Map(publishers.map((p) => [p.id, `${p.nombre} ${p.apellido ?? ""}`.trim()]));
   return (id: string | null): string => {
     if (!id) return "";
     return byId.get(id) ?? id.slice(0, 8);

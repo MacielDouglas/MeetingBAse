@@ -53,7 +53,7 @@ export const PART_FILTERS: Record<string, PartFilter> = {
 
 export function matchesFilter(p: PublisherRef, f: PartFilter): boolean {
   if (f.maleOnly && !isMale(p.sexo)) return false;
-  if (f.ebcOnly && !canEbc(p.cargo)) return false;
+  if (f.ebcOnly && !canEbc(p.cargo ?? "")) return false;
   return true;
 }
 
