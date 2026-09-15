@@ -404,19 +404,17 @@ export default function Programa() {
         {selectedMeeting ? (
           <>
             {/* Presidente */}
-            {selectedMeeting.parts.filter((p) => p.seccion === "PRESIDENTE").length > 0 ? (
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 0.5, borderBottomColor: "#eee" }}>
-                <Text style={{ fontSize: 14, color: "#333" }}>Presidente</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={{ fontSize: 14, color: "#555" }}>
-                    {selectedMeeting.parts.find((p) => p.seccion === "PRESIDENTE")?.titular_id
-                      ? pubName(selectedMeeting.parts.find((p) => p.seccion === "PRESIDENTE")!.titular_id)
-                      : es["Sin asignar"]}
-                  </Text>
-                  <Text style={{ fontSize: 14, color: "#ccc" }}>{">"}</Text>
-                </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 14, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e0e0e0" }}>
+              <Text style={{ fontSize: 15, color: "#333" }}>Presidente</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontSize: 14, color: "#555" }}>
+                  {selectedMeeting.parts.find((p) => p.seccion === "PRESIDENTE")?.titular_id
+                    ? pubName(selectedMeeting.parts.find((p) => p.seccion === "PRESIDENTE")!.titular_id)
+                    : es["Sin asignar"]}
+                </Text>
+                <Text style={{ fontSize: 14, color: "#ccc" }}>{">"}</Text>
               </View>
-            ) : null}
+            </View>
 
             {/* Seções */}
             {(() => {
