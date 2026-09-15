@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Button, FlatList, Text, View, Alert } from "react-native";
+import { Button, FlatList, Text, View, Alert, ScrollView } from "react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as FileSystem from "expo-file-system/legacy";
 import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
+import { usePrograma } from "../../hooks/usePrograma";
 import { SkeletonRow } from "../../components/Skeleton";
 import es from "../../i18n/es.json";
 
@@ -13,6 +14,9 @@ interface Template { id: string; name: string; description: string; }
 export default function ExportarScreen() {
   const congId = getCongregationId();
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const { meetings } = usePrograma(congId);
 
   const templates = useQuery({
     queryKey: ["templates", congId],
@@ -24,11 +28,11 @@ export default function ExportarScreen() {
   });
 
   const generate = useMutation({
-    mutationFn: async (templateId: string) => {
+    mutationFn: async ({ templateId, meetingId }: { templateId: string; meetingId?: string }) => {
       const res = await fetch(`${API_URL}/c/${congId}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ template_id: templateId }),
+        body: JSON.stringify({ template_id: templateId, meeting_id: meetingId ?? undefined }),
       });
       if (!res.ok) { const body = await res.json(); throw new Error(body.error ?? "Error al generar"); }
       return res.text();
@@ -39,6 +43,11 @@ export default function ExportarScreen() {
       Alert.alert("Error", msg);
     },
   });
+
+  function handleGenerate(templateId: string) {
+    setSelectedTemplateId(templateId);
+    generate.mutate({ templateId, meetingId: selectedMeetingId ?? undefined });
+  }
 
   async function handleShare() {
     if (!htmlContent) return;
@@ -84,9 +93,29 @@ export default function ExportarScreen() {
   }
 
   return (
-    <View style={{ flex: 1, padding: 16, gap: 12 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Exportar"]}</Text>
-      <Text style={{ color: "#666" }}>Seleccione un template para generar el documento</Text>
+
+      {/* Seletor de reunião */}
+      <View style={{ gap: 4 }}>
+        <Text style={{ fontWeight: "bold" }}>{es["Seleccionar reunión"]}</Text>
+        <Text style={{ fontSize: 12, color: "#666" }}>
+          {selectedMeetingId ? "Reunión seleccionada" : es["Todas las reuniones"]}
+        </Text>
+        <FlatList
+          data={meetings}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Button
+              title={`${item.fecha} ${item.tipo}`}
+              onPress={() => setSelectedMeetingId(selectedMeetingId === item.id ? null : item.id)}
+              color={selectedMeetingId === item.id ? "#1a5276" : "#ccc"}
+            />
+          )}
+        />
+      </View>
 
       {templates.isLoading ? <SkeletonRow lines={3} /> : null}
 
@@ -99,11 +128,17 @@ export default function ExportarScreen() {
       <FlatList
         data={templates.data ?? []}
         keyExtractor={(item) => item.id}
+        onRefresh={() => templates.refetch()}
+        refreshing={templates.isFetching && !templates.isLoading}
         renderItem={({ item }) => (
           <View style={{ padding: 12, borderBottomWidth: 1, borderColor: "#eee" }}>
             <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
             <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>{item.description}</Text>
-            <Button title={generate.isPending ? "Generando..." : "Generar"} onPress={() => generate.mutate(item.id)} disabled={generate.isPending} />
+            <Button
+              title={generate.isPending && selectedTemplateId === item.id ? "Generando..." : "Generar"}
+              onPress={() => handleGenerate(item.id)}
+              disabled={generate.isPending}
+            />
           </View>
         )}
       />
@@ -114,7 +149,11 @@ export default function ExportarScreen() {
       </View>
 
       {htmlContent ? (
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: 8, borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 8, maxHeight: 300, backgroundColor: "#fff" }}>
+          <Text style={{ fontWeight: "bold" }}>{es["Vista previa"]}</Text>
+          <ScrollView style={{ maxHeight: 200 }}>
+            <Text style={{ fontSize: 11, color: "#333" }} selectable>{htmlContent.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 2000)}</Text>
+          </ScrollView>
           <Text style={{ fontWeight: "bold" }}>{es["Documento generado"]}</Text>
           <Button title={es["Compartir"]} onPress={handleShare} />
           <Button title="Imprimir" onPress={handlePrint} />
@@ -122,6 +161,6 @@ export default function ExportarScreen() {
           <Button title="Cerrar vista previa" onPress={() => setHtmlContent(null)} color="#888" />
         </View>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }

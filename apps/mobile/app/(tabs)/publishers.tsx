@@ -12,7 +12,9 @@ interface Publisher {
   sexo: string;
   cargo: string;
   telefono?: string;
+  email?: string;
   activo: boolean;
+  familiaId?: string | null;
 }
 
 const CARGO_LABELS: Record<string, string> = {
@@ -28,6 +30,8 @@ export default function PublishersScreen() {
   const [sexo, setSexo] = useState<"M" | "F">("M");
   const [cargo, setCargo] = useState<string>("publicador");
   const [telefono, setTelefono] = useState("");
+  const [email, setEmail] = useState("");
+  const [familiaId, setFamiliaId] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,7 +48,7 @@ export default function PublishersScreen() {
   });
 
   const create = useMutation({
-    mutationFn: async (data: { nombre: string; sexo: string; cargo: string; telefono?: string }) => {
+    mutationFn: async (data: { nombre: string; sexo: string; cargo: string; telefono?: string; email?: string; familiaId?: string | null }) => {
       const res = await fetch(`${API_URL}/c/${congId}/publishers`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -65,7 +69,7 @@ export default function PublishersScreen() {
   });
 
   const update = useMutation({
-    mutationFn: async (data: { id: string; nombre: string; sexo: string; cargo: string; telefono?: string }) => {
+    mutationFn: async (data: { id: string; nombre: string; sexo: string; cargo: string; telefono?: string; email?: string; familiaId?: string | null }) => {
       const res = await fetch(`${API_URL}/c/${congId}/publishers/${data.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -107,6 +111,8 @@ export default function PublishersScreen() {
     setSexo("M");
     setCargo("publicador");
     setTelefono("");
+    setEmail("");
+    setFamiliaId("");
     setShowForm(false);
     setEditingId(null);
   }
@@ -116,21 +122,18 @@ export default function PublishersScreen() {
       Alert.alert(es["Error"], es["Nombre requerido"]);
       return;
     }
+    const payload = {
+      nombre: nombre.trim(),
+      sexo,
+      cargo,
+      telefono: telefono || undefined,
+      email: email || undefined,
+      familiaId: familiaId || null,
+    };
     if (editingId) {
-      update.mutate({
-        id: editingId,
-        nombre: nombre.trim(),
-        sexo,
-        cargo,
-        telefono: telefono || undefined,
-      });
+      update.mutate({ id: editingId, ...payload });
     } else {
-      create.mutate({
-        nombre: nombre.trim(),
-        sexo,
-        cargo,
-        telefono: telefono || undefined,
-      });
+      create.mutate(payload);
     }
   }
 
@@ -140,6 +143,8 @@ export default function PublishersScreen() {
     setSexo(pub.sexo as "M" | "F");
     setCargo(pub.cargo);
     setTelefono(pub.telefono ?? "");
+    setEmail(pub.email ?? "");
+    setFamiliaId(pub.familiaId ?? "");
     setShowForm(true);
   }
 
@@ -152,7 +157,7 @@ export default function PublishersScreen() {
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Publicadores"]}</Text>
 
       <Button
-        title={showForm ? es["Cancelar"] : `+ ${es["Nuevo publicador"]}`}
+        title={showForm ? es["Cancelar"] : editingId ? es["Editar"] : `+ ${es["Nuevo publicador"]}`}
         onPress={() => {
           if (showForm) {
             resetForm();
@@ -188,8 +193,22 @@ export default function PublishersScreen() {
             keyboardType="phone-pad"
             style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
           />
+          <TextInput
+            placeholder={es["Email (opcional)"]}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
+          />
+          <TextInput
+            placeholder={es["Familia (opcional)"]}
+            value={familiaId}
+            onChangeText={setFamiliaId}
+            style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 }}
+          />
           <Button
-            title={create.isPending || update.isPending ? es["Creando..."] : editingId ? es["Guardar"] : es["Crear publicador"]}
+            title={create.isPending || update.isPending ? es["Creando..."] : editingId ? es["Guardar cambios"] : es["Crear publicador"]}
             onPress={handleCreate}
             disabled={create.isPending || update.isPending}
           />
@@ -209,6 +228,8 @@ export default function PublishersScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
+        onRefresh={() => pubs.refetch()}
+        refreshing={pubs.isFetching && !pubs.isLoading}
         renderItem={({ item }) => (
           <View style={{ padding: 12, borderBottomWidth: 1, borderColor: "#eee", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flex: 1 }}>
@@ -216,6 +237,7 @@ export default function PublishersScreen() {
               <Text style={{ fontSize: 12, color: "#666" }}>
                 {CARGO_LABELS[item.cargo] ?? item.cargo} · {item.sexo}
                 {item.telefono ? ` · ${item.telefono}` : ""}
+                {item.email ? ` · ${item.email}` : ""}
               </Text>
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>

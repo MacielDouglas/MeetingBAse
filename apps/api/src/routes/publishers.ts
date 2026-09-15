@@ -15,6 +15,7 @@ const publisherBody = z.object({
   sexo: z.enum(["M", "F"], { message: "Sexo: M o F" }),
   cargo: z.enum(["anciano", "siervo_ministerial", "publicador"]).optional(),
   telefono: z.string().optional(),
+  email: z.string().email().optional(),
   familiaId: z.string().uuid().nullable().optional(),
 });
 
@@ -23,6 +24,7 @@ const updateBody = z.object({
   sexo: z.enum(["M", "F"]).optional(),
   cargo: z.enum(["anciano", "siervo_ministerial", "publicador"]).optional(),
   telefono: z.string().optional(),
+  email: z.string().email().optional(),
   activo: z.boolean().optional(),
   familiaId: z.string().uuid().nullable().optional(),
 });

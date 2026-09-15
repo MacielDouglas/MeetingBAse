@@ -1,7 +1,3 @@
-// Programa (Fase 3): lee del SQLite via usePrograma (offline-first).
-// Reuniones expandibles con parts, titular y warnings. Publicar exige online.
-// Sala siempre A, sin selector. iOS + Android (sin nativos nuevos).
-
 import { useState } from "react";
 import { Button, ScrollView, Text, View } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +10,24 @@ import es from "../../i18n/es.json";
 
 function estadoLabel(estado: string): string {
   return estado === "published" ? es["Publicado"] : es["Borrador"];
+}
+
+function excepcionLabel(ex: string): string {
+  switch (ex) {
+    case "convencao": return "🏠 " + es["Convenção"];
+    case "sin_reunion": return "🚫 " + es["Sin reunión"];
+    case "convencao_virtual": return "💻 " + es["Convenção virtual"];
+    default: return ex;
+  }
+}
+
+function salaColor(sala: string): string {
+  switch (sala) {
+    case "A": return "#1a5276";
+    case "B": return "#7d3c98";
+    case "C": return "#27ae60";
+    default: return "#666";
+  }
 }
 
 export default function Programa() {
@@ -43,12 +57,18 @@ export default function Programa() {
     },
   });
 
+  const salas = new Set(meetings.flatMap((m) => m.parts.map((p) => p.sala)));
+
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Programa"]}</Text>
-      <Text>
-        {es["Sala fija"]}: {es["Sala A"]}
-      </Text>
+      {salas.size > 1 ? (
+        <Text style={{ fontSize: 12, color: "#7d3c98" }}>
+          {es["Sala"]}: {[...salas].sort().map((s) => `${es["Sala"]} ${s}`).join(", ")}
+        </Text>
+      ) : (
+        <Text style={{ fontSize: 12, color: "#666" }}>{es["Sala fija"]}: {es["Sala A"]}</Text>
+      )}
 
       <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
         <Button
@@ -62,16 +82,12 @@ export default function Programa() {
       </View>
       {offline ? <Text>{es["Sin conexión"]}</Text> : null}
       {lastSync && !offline ? (
-        <Text>
-          {es["Sincronizado"]}: {lastSync}
-        </Text>
+        <Text>{es["Sincronizado"]}: {lastSync}</Text>
       ) : null}
 
       {isPending ? <SkeletonRow lines={5} /> : null}
       {isError && meetings.length === 0 ? (
-        <Text>
-          {(error as Error)?.message ?? es["Error al cargar el programa"]}
-        </Text>
+        <Text>{(error as Error)?.message ?? es["Error al cargar el programa"]}</Text>
       ) : null}
       {!isPending && meetings.length === 0 ? (
         <Text>{es["Sin reuniones todavía"]}</Text>
@@ -80,6 +96,7 @@ export default function Programa() {
 
       {meetings.map((m) => {
         const open = expanded === m.id;
+        const salasReuniao = new Set(m.parts.map((p) => p.sala));
         return (
           <View
             key={m.id}
@@ -91,19 +108,17 @@ export default function Programa() {
               {m.hora_inicio ? ` · ${m.hora_inicio}` : ""}
             </Text>
             <Text>
-              {m.tipo} · {es["Sala A"]} · {m.parts.length} {es["partes"]} ·{" "}
+              {m.tipo} · {[...salasReuniao].sort().join(", ")} · {m.parts.length} {es["partes"]} ·{" "}
               {estadoLabel(m.estado)}
             </Text>
             {m.excepcion ? (
               <Text style={{ color: "#e67e22", fontWeight: "bold" }}>
-                {m.excepcion === "convencao" ? "🏠 Convenção" : 
-                 m.excepcion === "sin_reunion" ? "🚫 Sin reunión" : 
-                 "💻 Convenção virtual"}
+                {excepcionLabel(m.excepcion)}
               </Text>
             ) : null}
             {m.visita_co ? (
               <Text style={{ color: "#3498db", fontWeight: "bold" }}>
-                👔 Visita del superintendente de circuito
+                👔 {es["Visita del CO"]}
               </Text>
             ) : null}
             {m.lectura_semanal ? <Text>{m.lectura_semanal}</Text> : null}
@@ -136,20 +151,25 @@ export default function Programa() {
             {open
               ? m.parts.map((p) => (
                   <View key={p.id} style={{ paddingLeft: 12, paddingVertical: 4, gap: 2 }}>
-            <Text>
-              {p.hora_inicio ? `${p.hora_inicio}` : ""}
-              {p.hora_fin ? ` - ${p.hora_fin}` : ""}
-              {p.hora_inicio || p.hora_fin ? " · " : ""}
-              {p.orden}. {p.titulo}
-              {p.duracion_min ? ` (${p.duracion_min} min)` : ""}
-            </Text>
-                    <Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <View style={{ backgroundColor: salaColor(p.sala), borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 }}>
+                        <Text style={{ color: "#fff", fontSize: 10, fontWeight: "bold" }}>{p.sala}</Text>
+                      </View>
+                      <Text>
+                        {p.hora_inicio ? `${p.hora_inicio}` : ""}
+                        {p.hora_fin ? ` - ${p.hora_fin}` : ""}
+                        {p.hora_inicio || p.hora_fin ? " · " : ""}
+                        {p.orden}. {p.titulo}
+                        {p.duracion_min ? ` (${p.duracion_min} min)` : ""}
+                      </Text>
+                    </View>
+                    <Text style={{ paddingLeft: 20 }}>
                       {es["Titular"]}:{" "}
                       {p.titular_id ? pubName(p.titular_id) : es["Sin asignar"]}
                       {p.ayudante_id ? ` · ${es["Ayudante"]}: ${pubName(p.ayudante_id)}` : ""}
                     </Text>
                     {p.warnings.map((w) => (
-                      <Text key={w.id}>⚠ {w.mensaje_es}</Text>
+                      <Text key={w.id} style={{ paddingLeft: 20 }}>⚠ {w.mensaje_es}</Text>
                     ))}
                   </View>
                 ))

@@ -14,6 +14,7 @@ export interface Publisher {
   cargo: string;
   activo: boolean;
   telefono?: string;
+  email?: string;
   userId?: string;
   familiaId?: string | null;
   createdAt: string;
@@ -31,6 +32,7 @@ function rowToPublisher(r: Record<string, unknown>): Publisher {
     cargo: String(r.cargo),
     activo: Boolean(r.activo),
     telefono: r.telefono ? String(r.telefono) : undefined,
+    email: r.email ? String(r.email) : undefined,
     userId: r.userId ? String(r.userId) : undefined,
     familiaId: r.familiaId ? String(r.familiaId) : null,
     createdAt: r.createdAt ? String(r.createdAt) : new Date().toISOString(),
@@ -86,6 +88,7 @@ export async function createPublisher(
     sexo: string;
     cargo?: string;
     telefono?: string;
+    email?: string;
     familiaId?: string | null;
   }
 ): Promise<Publisher> {
@@ -99,6 +102,7 @@ export async function createPublisher(
     cargo,
     activo: true,
     telefono: data.telefono,
+    email: data.email,
     familiaId: data.familiaId ?? null,
     createdAt: new Date().toISOString(),
   };
@@ -115,6 +119,7 @@ export async function createPublisher(
           cargo: pub.cargo,
           activo: pub.activo,
           telefono: pub.telefono ?? null,
+          email: pub.email ?? null,
           familiaId: pub.familiaId ?? null,
         });
         return pub;
@@ -138,6 +143,7 @@ export async function updatePublisher(
     sexo: string;
     cargo: string;
     telefono: string;
+    email: string;
     activo: boolean;
     familiaId: string | null;
   }>
@@ -160,6 +166,7 @@ export async function updatePublisher(
         if (data.sexo !== undefined) sets.sexo = data.sexo;
         if (data.cargo !== undefined) sets.cargo = data.cargo;
         if (data.telefono !== undefined) sets.telefono = data.telefono;
+        if (data.email !== undefined) sets.email = data.email;
         if (data.activo !== undefined) sets.activo = data.activo;
         if (data.familiaId !== undefined) sets.familiaId = data.familiaId;
         if (Object.keys(sets).length > 0) {
@@ -181,6 +188,7 @@ export async function updatePublisher(
   if (data.sexo !== undefined) pub.sexo = data.sexo;
   if (data.cargo !== undefined) pub.cargo = data.cargo;
   if (data.telefono !== undefined) pub.telefono = data.telefono;
+  if (data.email !== undefined) pub.email = data.email;
   if (data.activo !== undefined) pub.activo = data.activo;
   if (data.familiaId !== undefined) pub.familiaId = data.familiaId;
   list[idx] = pub;

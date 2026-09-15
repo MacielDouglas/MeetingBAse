@@ -14,6 +14,7 @@ export interface PublisherRef {
   nombre: string;
   sexo: string;
   cargo: string;
+  activo?: boolean;
   familiaId?: string | null;
 }
 

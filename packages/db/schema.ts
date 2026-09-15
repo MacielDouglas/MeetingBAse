@@ -31,6 +31,7 @@ export const publishers = pgTable("publishers", {
   cargo: text("cargo").notNull().default("publicador"),
   activo: boolean("activo").default(true).notNull(),
   telefono: text("telefono"),
+  email: text("email"),
   familiaId: uuid("familia_id"),
 }, (t) => ({ idx_pub_cong: index("idx_pub_cong").on(t.congregationId, t.activo) }));
 

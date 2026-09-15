@@ -229,6 +229,27 @@ export function meetingToVars(
     CBS_THEME: str(find("mwb_lc_cbs")?.titulo),
     CBS_SPEAKER_A: titularName("mwb_lc_cbs"),
     CBS_STARTTIME: partTime("mwb_lc_cbs"),
+    CBS_CONDUCTOR: titularName("mwb_lc_cbs"),
+    CBS_READER: "",
+    // MW-Worksheet extras: durations
+    FM1_TIME: num(find("mwb_ayf_part1")?.duracion_min),
+    FM2_TIME: num(find("mwb_ayf_part2")?.duracion_min),
+    FM3_TIME: num(find("mwb_ayf_part3")?.duracion_min),
+    FM4_TIME: num(find("mwb_ayf_part4")?.duracion_min),
+    CL1_TIME: num(find("mwb_lc_part1")?.duracion_min),
+    CL2_TIME: num(find("mwb_lc_part2")?.duracion_min),
+    CBS_TIME: num(find("mwb_lc_cbs")?.duracion_min),
+    // MW-Worksheet extras: sources (from part detail if available)
+    GW1_SOURCE: str(find("mwb_tgw_talk")?.detalle),
+    GW2_SOURCE: str(find("mwb_tgw_gems")?.detalle),
+    GW3_SOURCE: str(find("mwb_tgw_bread")?.detalle),
+    GW3_SPEAKER: titularName("mwb_tgw_bread"),
+    FM1_SOURCE: str(find("mwb_ayf_part1")?.detalle),
+    FM2_SOURCE: str(find("mwb_ayf_part2")?.detalle),
+    FM3_SOURCE: str(find("mwb_ayf_part3")?.detalle),
+    FM4_SOURCE: str(find("mwb_ayf_part4")?.detalle),
+    FM1_ASSISTANT_A: "",
+    FM2_ASSISTANT_A: "",
     // Weekend sections
     PT_THEME: str(find("discurso_publico")?.titulo),
     PT_SPEAKER: titularName("discurso_publico"),
@@ -246,6 +267,11 @@ export function meetingToVars(
     SONG3_STARTTIME: partTime("cancion_final"),
     PRAYER1_NAME: "",
     PRAYER2_NAME: "",
+    // MW-Worksheet next-week placeholders (filled if multiple meetings available)
+    GW1_THEME_NW: "",
+    GW2_THEME_NW: "",
+    GW3_THEME_NW: "",
+    FM1_THEME_NW: "",
   };
 }
 
