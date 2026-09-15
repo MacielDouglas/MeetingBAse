@@ -159,3 +159,39 @@ export const catalogs = pgTable("catalogs", {
   data: jsonb("data").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ catalogsCongKind: uniqueIndex("catalogs_cong_kind_idx").on(t.congregationId, t.kind) }));
+
+// Fase 12 — configuração de horários da reunião.
+export const meetingConfig = pgTable("meeting_config", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  congregationId: uuid("congregation_id").notNull().references(() => congregations.id),
+  midweekDay: integer("midweek_day").default(3).notNull(), // 1=Dom,2=Seg,...,7=Sab
+  midweekTime: text("midweek_time").default("19:00").notNull(),
+  weekendDay: integer("weekend_day").default(1).notNull(), // 1=Dom,2=Seg,...,7=Sab
+  weekendTime: text("weekend_time").default("10:00").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({ uq_meeting_config: uniqueIndex("uq_meeting_config").on(t.congregationId) }));
+
+// Fase 12 — eventos especiais (convenções, assembleias, visitas do CO, memorial).
+export const specialEvents = pgTable("special_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  congregationId: uuid("congregation_id").notNull().references(() => congregations.id),
+  tipo: text("tipo").notNull(), // convencao, assembleia_circuito, visita_co, memorial, outro
+  titulo: text("titulo").notNull(),
+  fechaInicio: date("fecha_inicio").notNull(),
+  fechaFin: date("fecha_fin"),
+  horaInicio: text("hora_inicio"),
+  notas: text("notas"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({ idx_special_events_cong: index("idx_special_events_cong").on(t.congregationId, t.fechaInicio) }));
+
+// Fase 12 — exceções de agenda (dias sem reunião, horários modificados).
+export const scheduleExceptions = pgTable("schedule_exceptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  congregationId: uuid("congregation_id").notNull().references(() => congregations.id),
+  fecha: date("fecha").notNull(),
+  tipo: text("tipo").notNull(), // sin_reunion, horario_modificado, reunion_especial
+  horaInicio: text("hora_inicio"),
+  notas: text("notas"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (t) => ({ idx_sched_exc_cong: index("idx_sched_exc_cong").on(t.congregationId, t.fecha) }));

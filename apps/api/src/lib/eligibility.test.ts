@@ -76,13 +76,13 @@ describe("checkEligibility", () => {
     aceitaQualquerUm("mwb_tgw_gems");
   });
 
-  describe("mwb_tgw_bread: solo varón", () => {
-    it("bloqueia mulher", () => {
+  describe("mwb_tgw_bread: solo varón (suave)", () => {
+    it("avisa mulher (suave, não bloqueia)", () => {
       const { warnings } = check({
         titular: makePub({ sexo: "mujer" }),
         part: makePart({ tipoClave: "mwb_tgw_bread" }),
       });
-      expect(findWarning(warnings, "solo_varon")?.duro).toBe(true);
+      expect(findWarning(warnings, "solo_varon")?.duro).toBe(false);
     });
 
     it("aceita homem (publicador)", () => {

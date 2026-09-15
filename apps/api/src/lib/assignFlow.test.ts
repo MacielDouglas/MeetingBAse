@@ -8,6 +8,7 @@ import { upsertMemPublisher } from "./assignStore.js";
 
 const CONG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const MID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const P_PRESIDENT = "cccccccc-cccc-4ccc-8ccc-cccccccc0000";
 const P_TALK = "cccccccc-cccc-4ccc-8ccc-cccccccc0001";
 const P_BREAD = "cccccccc-cccc-4ccc-8ccc-cccccccc0002";
 const T_MAN = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
@@ -35,8 +36,9 @@ beforeAll(() => {
       estado: "draft",
       sala: "A",
       parts: [
-        { id: P_TALK, orden: 2, seccion: "TESOROS", tipoClave: "mwb_tgw_talk", titulo: "Discurso", requiereAyudante: false, sala: "A" },
-        { id: P_BREAD, orden: 4, seccion: "TESOROS", tipoClave: "mwb_tgw_bread", titulo: "Lectura", requiereAyudante: true, needsReview: true, sala: "A" },
+        { id: P_PRESIDENT, orden: 2, seccion: "PRESIDENTE", tipoClave: "wk_presidente", titulo: "Presidente", requiereAyudante: false, sala: "A" },
+        { id: P_TALK, orden: 3, seccion: "TESOROS", tipoClave: "mwb_tgw_talk", titulo: "Discurso", requiereAyudante: false, sala: "A" },
+        { id: P_BREAD, orden: 5, seccion: "TESOROS", tipoClave: "mwb_tgw_bread", titulo: "Lectura", requiereAyudante: false, needsReview: true, sala: "A" },
       ],
     },
   ]);
@@ -52,13 +54,12 @@ describe("assignPart (memória)", () => {
     expect(b.warnings).toEqual([]);
   });
 
-  it("gera warnings suaves (mulher na leitura sem ajudante)", async () => {
+  it("gera warnings suaves (mulher na leitura sem ayudante)", async () => {
     const r = await assignPart(CONG, P_BREAD, T_WOMAN, null);
     const b = r.body as AssignBody;
     expect(r.status).toBe(200);
     const tipos = (b.warnings ?? []).map((w) => w.tipo);
     expect(tipos).toContain("solo_varon");
-    expect(tipos).toContain("requiere_ayudante");
     expect(tipos).toContain("needs_review");
   });
 

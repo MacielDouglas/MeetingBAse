@@ -3,7 +3,7 @@
 // Componentes PresidentSection e PartCard em ../components/AsignarCards.tsx
 
 import { useState, useMemo } from "react";
-import { Button, FlatList, ScrollView, Text, View } from "react-native";
+import { Button, FlatList, ScrollView, Text, View, TouchableOpacity } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
 import {
@@ -14,12 +14,14 @@ import {
   isNetworkError,
   savePrayer,
   suggestCandidates,
+  getConfig,
   type SyncPrayer,
 } from "../../lib/api";
-import { fmtDate } from "../../lib/formatDate";
+import { fmtDate, getWeekStart, calcMeetingDate, dayNameEs } from "../../lib/formatDate";
 import { usePrograma } from "../../hooks/usePrograma";
 import { usePublishers } from "../../hooks/usePublishers";
 import { matchesFilter, PART_FILTERS, PresidentSection, PartCard } from "../../components/AsignarCards";
+import type { ProgramaMeeting } from "../../lib/dbPrograma";
 
 const SECTION_LABELS: Record<string, string> = {
   TESOROS: "Tesoros de la Palabra de Dios",
@@ -29,6 +31,128 @@ const SECTION_LABELS: Record<string, string> = {
   SENTINELA: "Sentinela",
   ATALAYA: "Estudio de la Atalaya",
 };
+
+const MEETING_TYPE_LABELS: Record<string, string> = {
+  entre_semana: "Entre semana",
+  fin_semana: "Fin de semana",
+};
+
+function todayStr(): string {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+interface MeetingConfig {
+  midweekDay: number;
+  midweekTime: string;
+  weekendDay: number;
+  weekendTime: string;
+}
+
+function classifyMeetings(meetings: ProgramaMeeting[], config: MeetingConfig | null) {
+  const today = todayStr();
+  const currentWeekStart = getWeekStart(today);
+  const current: ProgramaMeeting[] = [];
+  const future: ProgramaMeeting[] = [];
+  const past: ProgramaMeeting[] = [];
+  for (const m of meetings) {
+    const mWeek = getWeekStart(m.fecha);
+    if (mWeek === currentWeekStart) {
+      current.push(m);
+    } else if (m.fecha >= today) {
+      future.push(m);
+    } else {
+      past.push(m);
+    }
+  }
+  const sortFn = (a: ProgramaMeeting, b: ProgramaMeeting) => {
+    if (a.tipo === "entre_semana" && b.tipo === "fin_semana") return -1;
+    if (a.tipo === "fin_semana" && b.tipo === "entre_semana") return 1;
+    return a.fecha.localeCompare(b.fecha);
+  };
+  return { current: current.sort(sortFn), future: future.sort(sortFn), past: past.sort(sortFn) };
+}
+
+function assignmentColor(m: ProgramaMeeting): string {
+  const assignable = m.parts.filter(
+    (p) => p.tipo_clave !== "cancion_inicial" && p.tipo_clave !== "cancion_intermedia" && p.tipo_clave !== "cancion_final"
+  );
+  if (assignable.length === 0) return "#ccc";
+  const assigned = assignable.filter((p) => p.titular_id).length;
+  if (assigned >= assignable.length) return "#27ae60";
+  if (assigned > 0) return "#f39c12";
+  return "#e74c3c";
+}
+
+function MeetingChip({
+  m,
+  selected,
+  onPress,
+  config,
+}: {
+  m: ProgramaMeeting;
+  selected: boolean;
+  onPress: () => void;
+  config: MeetingConfig | null;
+}) {
+  const color = assignmentColor(m);
+  const assignable = m.parts.filter(
+    (p) => p.tipo_clave !== "cancion_inicial" && p.tipo_clave !== "cancion_intermedia" && p.tipo_clave !== "cancion_final"
+  );
+  const assigned = assignable.filter((p) => p.titular_id).length;
+  const tipoLabel = MEETING_TYPE_LABELS[m.tipo] ?? m.tipo;
+
+  const weekStart = getWeekStart(m.fecha);
+  let displayDate = m.fecha;
+  let displayDay = "";
+  if (config) {
+    const dayOfWeek = m.tipo === "entre_semana" ? config.midweekDay : config.weekendDay;
+    displayDate = calcMeetingDate(weekStart, dayOfWeek);
+    displayDay = dayNameEs(dayOfWeek);
+  } else {
+    const d = new Date(m.fecha + "T00:00:00");
+    const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+    displayDay = days[d.getDay()];
+  }
+
+  const meetingTime = m.tipo === "entre_semana"
+    ? (config?.midweekTime ?? null)
+    : (config?.weekendTime ?? null);
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: selected ? "#0a7ea4" : color,
+        backgroundColor: selected ? "#eaf2f8" : "#fff",
+        gap: 2,
+      }}
+    >
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <Text style={{ fontWeight: "600", fontSize: 13 }}>
+          {displayDay} {fmtDate(displayDate)}
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
+          <Text style={{ fontSize: 11, color: "#666" }}>
+            {assigned}/{assignable.length}
+          </Text>
+        </View>
+      </View>
+      <Text style={{ fontSize: 12, color: "#555" }}>
+        {tipoLabel}
+        {meetingTime ? ` \u00B7 ${meetingTime}` : ""}
+        {m.semana_label ? ` \u00B7 ${m.semana_label}` : ""}
+      </Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function Asignar() {
   const congId = getCongregationId();
@@ -40,6 +164,17 @@ export default function Asignar() {
   const [result, setResult] = useState<{ warnings: { tipo: string; mensaje_es: string }[] } | null>(null);
   const [prayerSel, setPrayerSel] = useState<{ inicial: string | null; final: string | null }>({ inicial: null, final: null });
   const [prayerMsg, setPrayerMsg] = useState<string | null>(null);
+
+  // Buscar configuração
+  const { data: configData } = useQuery({
+    queryKey: ["config", congId],
+    queryFn: () => getConfig(congId!),
+    enabled: !!congId,
+    retry: 1,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  const config = configData?.config ?? null;
 
   const meeting = meetings.find((m) => m.id === meetingId) ?? null;
 
@@ -106,7 +241,6 @@ export default function Asignar() {
     return map;
   }, [assignableParts]);
 
-  // ── Auto-asignar todas ──
   const [autoAssignResult, setAutoAssignResult] = useState<string | null>(null);
   const autoAssignMut = useMutation({
     mutationFn: async () => {
@@ -144,31 +278,44 @@ export default function Asignar() {
     return getPubName(pr.publisher_id);
   }
 
+  const { current, future } = useMemo(() => classifyMeetings(meetings, config), [meetings, config]);
+  const orderedMeetings = useMemo(() => [...current, ...future], [current, future]);
+
+  function selectMeeting(id: string) {
+    setMeetingId(id);
+    setExpandedPart(null);
+    setResult(null);
+    setFormError(null);
+    setPrayerSel({ inicial: null, final: null });
+  }
+
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Asignar"]}</Text>
-      <Text>{es["Sala fija"]}: {es["Sala A"]}</Text>
       {offline ? <Text style={{ color: "#e74c3c" }}>{es["Sin conexión — verifique la IP del servidor"]}</Text> : null}
 
-      <Text style={{ fontWeight: "bold", fontSize: 16 }}>{es["Reunión"]}</Text>
       {meetings.length === 0 ? <Text>{es["Sin reuniones todavía"]}</Text> : null}
-      {meetings.map((m) => (
-        <Button
-          key={m.id}
-          title={`${m.semana_label ? `${m.semana_label} · ` : ""}${fmtDate(m.fecha)} · ${m.tipo}`}
-          onPress={() => {
-            setMeetingId(m.id);
-            setExpandedPart(null);
-            setResult(null);
-            setFormError(null);
-            setPrayerSel({ inicial: null, final: null });
-          }}
-          color={m.id === meetingId ? "#0a7ea4" : undefined}
-        />
-      ))}
+
+      {current.length > 0 ? (
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontWeight: "bold", fontSize: 14, color: "#1a5276" }}>Semana actual</Text>
+          {current.map((m) => (
+            <MeetingChip key={m.id} m={m} selected={m.id === meetingId} onPress={() => selectMeeting(m.id)} config={config} />
+          ))}
+        </View>
+      ) : null}
+
+      {future.length > 0 ? (
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontWeight: "bold", fontSize: 14, color: "#7d3c98" }}>Próximas reuniones</Text>
+          {future.map((m) => (
+            <MeetingChip key={m.id} m={m} selected={m.id === meetingId} onPress={() => selectMeeting(m.id)} config={config} />
+          ))}
+        </View>
+      ) : null}
 
       {meeting ? (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: 12, marginTop: 8 }}>
           {presPart ? (
             <PresidentSection
               part={presPart}
@@ -177,14 +324,7 @@ export default function Asignar() {
               offline={offline}
               getPubName={getPubName}
             />
-          ) : (
-            <View style={{ padding: 12, backgroundColor: "#eaf2f8", borderRadius: 8, borderWidth: 1, borderColor: "#aed6f1", gap: 6 }}>
-              <Text style={{ fontWeight: "bold", fontSize: 15 }}>👤 {es["Presidente"]}</Text>
-              <Text style={{ fontSize: 12, color: "#666" }}>
-                Esta reunión no tiene parte de presidente para asignar.
-              </Text>
-            </View>
-          )}
+          ) : null}
 
           {[...grouped.entries()].map(([sec, parts]) => (
             <View key={sec} style={{ gap: 8 }}>
@@ -262,7 +402,7 @@ export default function Asignar() {
           <Text style={{ fontWeight: "bold" }}>{es["Asignación guardada"]}</Text>
           {result.warnings.length === 0 ? <Text>{es["Sin avisos"]}</Text> : null}
           {result.warnings.map((w, i) => (
-            <Text key={`${w.tipo}-${i}`}>⚠ {w.mensaje_es}</Text>
+            <Text key={`${w.tipo}-${i}`}>{"\u26A0"} {w.mensaje_es}</Text>
           ))}
         </View>
       ) : null}

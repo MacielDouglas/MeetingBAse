@@ -7,3 +7,4 @@ export * from "./api/meetings";
 export * from "./api/ministry";
 export * from "./api/suggest";
 export * from "./api/congregations";
+export * from "./api/config";

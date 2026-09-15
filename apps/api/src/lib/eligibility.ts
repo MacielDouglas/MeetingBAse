@@ -125,12 +125,12 @@ export function checkEligibility(input: EligibilityInput): {
   // Regras específicas por tipoClave
   const rule = PART_RULES[part.tipoClave];
   if (rule) {
-    // Solo varón
+    // Solo varón (suave — informação, não bloqueia)
     if (rule.titularMale && !isMale(titular.sexo)) {
       warnings.push({
         tipo: "solo_varon",
         mensajeEs: "Solo un varón puede tomar esta parte",
-        duro: true,
+        duro: false,
       });
     }
 

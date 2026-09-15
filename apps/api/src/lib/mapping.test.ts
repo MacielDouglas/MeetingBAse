@@ -35,7 +35,7 @@ describe("detectPubKind", () => {
 });
 
 describe("mapMwbToParts", () => {
-  it("genera 13 partes con datos completos", () => {
+  it("genera 14 partes con presidente incluido", () => {
     const row: MwbRow = {
       mwb_song_first: 1,
       mwb_tgw_talk_title: "Discurso introductorio",
@@ -63,17 +63,31 @@ describe("mapMwbToParts", () => {
       mwb_lc_cbs_title: "Estudio la Biblia",
     };
     const parts = mapMwbToParts(row);
-    expect(parts).toHaveLength(13);
+    expect(parts).toHaveLength(14);
+    // 0: cancion inicial
     expect(parts[0].tipoClave).toBe("cancion_inicial");
     expect(parts[0].titulo).toBe("Canción 1");
-    expect(parts[1].tipoClave).toBe("mwb_tgw_talk");
-    expect(parts[2].tipoClave).toBe("mwb_tgw_gems");
-    expect(parts[3].tipoClave).toBe("mwb_tgw_bread");
-    expect(parts[3].requiereAyudante).toBe(true);
-    expect(parts[4].tipoClave).toBe("mwb_ayf_part1");
-    expect(parts[8].tipoClave).toBe("cancion_intermedia");
-    expect(parts[11].tipoClave).toBe("mwb_lc_cbs");
-    expect(parts[12].tipoClave).toBe("cancion_final");
+    // 1: presidente
+    expect(parts[1].tipoClave).toBe("wk_presidente");
+    // 2-4: tesoros
+    expect(parts[2].tipoClave).toBe("mwb_tgw_talk");
+    expect(parts[3].tipoClave).toBe("mwb_tgw_gems");
+    expect(parts[4].tipoClave).toBe("mwb_tgw_bread");
+    expect(parts[4].requiereAyudante).toBe(false);
+    // 5-8: AYF
+    expect(parts[5].tipoClave).toBe("mwb_ayf_iniciar");
+    expect(parts[6].tipoClave).toBe("mwb_ayf_cultivar");
+    expect(parts[7].tipoClave).toBe("mwb_ayf_explicar_discurso");
+    expect(parts[8].tipoClave).toBe("mwb_ayf_explicar_demo");
+    // 9: cancion intermedia
+    expect(parts[9].tipoClave).toBe("cancion_intermedia");
+    // 10-11: vida
+    expect(parts[10].tipoClave).toBe("mwb_lc_part1");
+    expect(parts[11].tipoClave).toBe("mwb_lc_part2");
+    // 12: EBC
+    expect(parts[12].tipoClave).toBe("mwb_lc_cbs");
+    // 13: cancion final
+    expect(parts[13].tipoClave).toBe("cancion_final");
   });
 
   it("genera placeholders para AYF faltantes", () => {
@@ -82,7 +96,12 @@ describe("mapMwbToParts", () => {
       mwb_song_first: 1,
     };
     const parts = mapMwbToParts(row);
-    const ayfParts = parts.filter((p) => p.tipoClave.startsWith("mwb_ayf_part"));
+    const ayfParts = parts.filter((p) =>
+      p.tipoClave === "mwb_ayf_iniciar" ||
+      p.tipoClave === "mwb_ayf_cultivar" ||
+      p.tipoClave === "mwb_ayf_explicar_discurso" ||
+      p.tipoClave === "mwb_ayf_explicar_demo"
+    );
     expect(ayfParts).toHaveLength(4);
     expect(ayfParts[0].needsReview).toBeFalsy(); // tiene dato
     expect(ayfParts[1].needsReview).toBeFalsy(); // tiene dato
@@ -106,33 +125,37 @@ describe("mapMwbToParts", () => {
     const row: MwbRow = {};
     const parts = mapMwbToParts(row);
     expect(parts[0].needsReview).toBe(true);   // cancion inicial
-    expect(parts[8].needsReview).toBe(true);   // cancion intermedia
-    expect(parts[12].needsReview).toBe(true);  // cancion final
+    expect(parts[9].needsReview).toBe(true);   // cancion intermedia
+    expect(parts[13].needsReview).toBe(true);  // cancion final
   });
 });
 
 describe("mapWatchtowerToParts", () => {
-  it("genera 4 partes", () => {
+  it("genera 8 partes con presidente y sentinela", () => {
     const row: MwbRow = {
       w_study_opening_song: 50,
       w_study_title: "Estudio: La Biblia",
       w_study_concluding_song: 33,
     };
     const parts = mapWatchtowerToParts(row);
-    expect(parts).toHaveLength(4);
-    expect(parts[0].tipoClave).toBe("cancion_inicial");
-    expect(parts[0].titulo).toBe("Canción 50");
-    expect(parts[1].tipoClave).toBe("discurso_publico");
-    expect(parts[2].tipoClave).toBe("w_estudio");
-    expect(parts[2].titulo).toBe("Estudio: La Biblia");
-    expect(parts[3].tipoClave).toBe("cancion_final");
+    expect(parts).toHaveLength(8);
+    expect(parts[0].tipoClave).toBe("wk_oracion");
+    expect(parts[1].tipoClave).toBe("cancion_inicial");
+    expect(parts[1].titulo).toBe("Canción 50");
+    expect(parts[2].tipoClave).toBe("wk_presidente");
+    expect(parts[3].tipoClave).toBe("wk_discurso_publico");
+    expect(parts[4].tipoClave).toBe("wk_sentinela_dirigente");
+    expect(parts[5].tipoClave).toBe("wk_sentinela_leitor");
+    expect(parts[6].tipoClave).toBe("w_estudio");
+    expect(parts[6].titulo).toBe("Estudio: La Biblia");
+    expect(parts[7].tipoClave).toBe("cancion_final");
   });
 
   it("marca needsReview en canciones sin número", () => {
     const row: MwbRow = {};
     const parts = mapWatchtowerToParts(row);
-    expect(parts[0].needsReview).toBe(true);
-    expect(parts[3].needsReview).toBe(true);
+    expect(parts[1].needsReview).toBe(true);   // cancion inicial
+    expect(parts[7].needsReview).toBe(true);   // cancion final
   });
 });
 

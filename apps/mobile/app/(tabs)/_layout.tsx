@@ -15,6 +15,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="visits" options={{ title: es["Visitas"] }} />
       <Tabs.Screen name="reportes" options={{ title: es["Reportes"] }} />
       <Tabs.Screen name="exportar" options={{ title: es["Exportar"] }} />
+      <Tabs.Screen name="config" options={{ title: es["Configuración"] }} />
       <Tabs.Screen name="profile" options={{ title: es["Perfil"] }} />
     </Tabs>
   );

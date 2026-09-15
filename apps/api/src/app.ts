@@ -8,6 +8,7 @@ import { meetingsRoutes } from "./routes/meetings.js";
 import { syncRoutes } from "./routes/sync.js";
 import { generateRoutes } from "./routes/generate.js";
 import { unavailabilityRoutes } from "./routes/unavailability.js";
+import { configRoutes } from "./routes/config.js";
 import { runMigrations } from "./lib/migrate.js";
 import { authGuard } from "./lib/middleware.js";
 import { rateLimit } from "./lib/rateLimit.js";
@@ -65,6 +66,7 @@ export async function buildApp() {
   await app.register(syncRoutes);
   await app.register(generateRoutes);
   await app.register(unavailabilityRoutes);
+  await app.register(configRoutes);
 
   return app;
 }
