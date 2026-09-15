@@ -5,7 +5,7 @@
 export interface PublisherRef {
   id: string;
   sexo: string;
-  cargo: string;
+  ebc?: boolean;
   congregationId: string;
   familiaId?: string | null;
 }
@@ -45,7 +45,7 @@ const MALE = new Set(["hombre", "varon", "varón", "m", "masculino"]);
 const EBC_OK = new Set(["anciano", "siervo ministerial", "siervo_ministerial", "siervo"]);
 
 const isMale = (sexo: string) => MALE.has(norm(sexo));
-const canLeadEbc = (cargo: string) => EBC_OK.has(norm(cargo));
+const canLeadEbc = (p: PublisherRef) => Boolean(p.ebc);
 
 function sameFamily(a: PublisherRef, b: PublisherRef): boolean {
   return !!(a.familiaId && b.familiaId && a.familiaId === b.familiaId);
@@ -135,7 +135,7 @@ export function checkEligibility(input: EligibilityInput): {
     }
 
     // Solo anciano / siervo ministerial
-    if (rule.titularEbc && !canLeadEbc(titular.cargo)) {
+    if (rule.titularEbc && !canLeadEbc(titular)) {
       warnings.push({
         tipo: "ebc_solo_nombrados",
         mensajeEs: "Solo un anciano o siervo ministerial puede tomar esta parte",

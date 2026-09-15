@@ -23,8 +23,8 @@ interface AssignBody {
 }
 
 beforeAll(() => {
-  upsertMemPublisher({ id: T_MAN, sexo: "hombre", cargo: "anciano", congregationId: CONG });
-  upsertMemPublisher({ id: T_WOMAN, sexo: "mujer", cargo: "publicadora", congregationId: CONG });
+  upsertMemPublisher({ id: T_MAN, sexo: "hombre", ebc: true, congregationId: CONG });
+  upsertMemPublisher({ id: T_WOMAN, sexo: "mujer", ebc: false, congregationId: CONG });
   saveConfirmedMeetings([
     {
       id: MID,

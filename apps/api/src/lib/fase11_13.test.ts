@@ -32,7 +32,7 @@ describe("fase 11: unavailability", () => {
 
   it("elegibilidade avisa indisponível (suave)", () => {
     const base = {
-      titular: { id: "t1", sexo: "M", cargo: "publicador", congregationId: CONG },
+      titular: { id: "t1", sexo: "M", ebc: false, congregationId: CONG },
       part: {
         id: "p1",
         meetingId: "m1",

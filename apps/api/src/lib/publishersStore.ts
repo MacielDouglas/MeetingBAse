@@ -77,7 +77,7 @@ function rowToPublisher(r: Record<string, unknown>): Publisher {
   };
   for (const f of BOOL_FIELDS) {
     const col = f.replace(/([A-Z])/g, "_$1").toLowerCase();
-    (pub as Record<string, unknown>)[f] = Boolean(r[col] ?? r[f]);
+    (pub as unknown as Record<string, unknown>)[f] = Boolean(r[col] ?? r[f]);
   }
   return pub;
 }

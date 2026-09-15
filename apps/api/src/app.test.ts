@@ -17,7 +17,7 @@ let app: FastifyInstance;
 let authHeader: Record<string, string>;
 
 beforeAll(async () => {
-  upsertMemPublisher({ id: T_MAN, sexo: "hombre", cargo: "anciano", congregationId: CONG });
+  upsertMemPublisher({ id: T_MAN, sexo: "hombre", ebc: true, congregationId: CONG });
   saveConfirmedMeetings([
     {
       id: MID,

@@ -29,7 +29,7 @@ export interface NeonPartHit {
 export interface NeonPublisher {
   id: string;
   sexo: string;
-  cargo: string;
+  ebc: boolean;
   congregationId: string;
 }
 
@@ -105,7 +105,7 @@ export async function getNeonPublisher(
     const rows = await db.select().from(publishers).where(eq(publishers.id, id));
     const r = rows[0];
     if (!r) return null;
-    return { id: r.id, sexo: r.sexo, cargo: r.cargo, congregationId: r.congregationId };
+    return { id: r.id, sexo: r.sexo, ebc: Boolean(r.ebc), congregationId: r.congregationId };
   } catch {
     return null;
   }

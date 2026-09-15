@@ -11,7 +11,7 @@ import type { ListedMeeting } from "./repoNeon.js";
 export interface MemPublisher {
   id: string;
   sexo: string;
-  cargo: string;
+  ebc?: boolean;
   congregationId: string;
   nombre?: string;
 }
@@ -56,7 +56,7 @@ export async function getMemPublisher(id: string, congId?: string): Promise<MemP
       const memPub: MemPublisher = {
         id: found.id,
         sexo: found.sexo,
-        cargo: found.cargo,
+        ebc: found.ebc,
         congregationId: found.congregationId,
         nombre: found.nombre,
       };

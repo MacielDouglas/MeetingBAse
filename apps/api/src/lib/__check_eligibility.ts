@@ -15,65 +15,65 @@ function part(tipoClave: string, extra = {}) {
     ...extra,
   };
 }
-function pub(id: string, sexo: string, cargo: string, congregationId = cong) {
-  return { id, sexo, cargo, congregationId };
+function pub(id: string, sexo: string, ebc: boolean, congregationId = cong) {
+  return { id, sexo, ebc, congregationId };
 }
 
 const cases: { name: string; input: Parameters<typeof checkEligibility>[0] }[] = [
   {
     name: "lectura_mujer",
     input: {
-      titular: pub("c0000000-0000-0000-0000-000000000001", "mujer", "publicador"),
+      titular: pub("c0000000-0000-0000-0000-000000000001", "mujer", false),
       part: part("mwb_tgw_bread", { requiereAyudante: true, ayudanteId: undefined }),
     },
   },
   {
     name: "ayf1_mujer",
     input: {
-      titular: pub("c0000000-0000-0000-0000-000000000002", "mujer", "publicadora"),
+      titular: pub("c0000000-0000-0000-0000-000000000002", "mujer", false),
       part: part("mwb_ayf_part1"),
     },
   },
   {
     name: "ebc_publicador",
     input: {
-      titular: pub("c0000000-0000-0000-0000-000000000003", "hombre", "publicador"),
+      titular: pub("c0000000-0000-0000-0000-000000000003", "hombre", false),
       part: part("mwb_lc_cbs"),
     },
   },
   {
     name: "ebc_anciano_ok",
     input: {
-      titular: pub("c0000000-0000-0000-0000-000000000004", "hombre", "anciano"),
+      titular: pub("c0000000-0000-0000-0000-000000000004", "hombre", true),
       part: part("mwb_lc_cbs"),
     },
   },
   {
     name: "sin_ayudante",
     input: {
-      titular: pub("c0000000-0000-0000-0000-000000000005", "hombre", "publicador"),
+      titular: pub("c0000000-0000-0000-0000-000000000005", "hombre", false),
       part: part("mwb_ayf_part2", { requiereAyudante: true }),
     },
   },
   {
     name: "titular_igual_ayudante_duro",
     input: {
-      titular: pub("c0000000-0000-0000-0000-000000000006", "hombre", "publicador"),
-      ayudante: pub("c0000000-0000-0000-0000-000000000006", "hombre", "publicador"),
+      titular: pub("c0000000-0000-0000-0000-000000000006", "hombre", false),
+      ayudante: pub("c0000000-0000-0000-0000-000000000006", "hombre", false),
       part: part("mwb_tgw_talk"),
     },
   },
   {
     name: "otra_congregacion_duro",
     input: {
-      titular: pub("c0000000-0000-0000-0000-000000000007", "hombre", "anciano", otra),
+      titular: pub("c0000000-0000-0000-0000-000000000007", "hombre", true, otra),
       part: part("mwb_lc_cbs"),
     },
   },
   {
     name: "doble_asignacion_suave",
     input: {
-      titular: pub("c0000000-0000-0000-0000-000000000008", "hombre", "anciano"),
+      titular: pub("c0000000-0000-0000-0000-000000000008", "hombre", true),
       part: part("mwb_lc_cbs"),
       titularYaAsignadoEstaSemana: true,
     },

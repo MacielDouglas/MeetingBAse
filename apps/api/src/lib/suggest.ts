@@ -147,7 +147,7 @@ const MALE = new Set(["m", "hombre", "varon", "varón", "masculino"]);
 const EBC_OK = new Set(["anciano", "siervo ministerial", "siervo_ministerial", "siervo"]);
 
 const isMale = (sexo: string) => MALE.has(sexo.trim().toLowerCase());
-const canLeadEbc = (cargo: string) => EBC_OK.has(cargo.trim().toLowerCase());
+const canLeadEbc = (p: Publisher) => Boolean(p.ebc);
 
 interface PartFilter {
   maleOnly?: boolean;
@@ -175,7 +175,7 @@ const PART_FILTERS: Record<string, PartFilter> = {
 
 function matchesFilter(p: Publisher, filter: PartFilter): boolean {
   if (filter.maleOnly && !isMale(p.sexo)) return false;
-  if (filter.ebcOnly && !canLeadEbc(p.cargo)) return false;
+  if (filter.ebcOnly && !canLeadEbc(p)) return false;
   return true;
 }
 

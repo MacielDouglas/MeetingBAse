@@ -26,11 +26,11 @@ const T_SEG = "66666666-6666-4666-8666-666666666604";
 const AYU = "66666666-6666-4666-8666-666666666605";
 const NOBODY = "77777777-7777-4777-8777-777777777777";
 
-upsertMemPublisher({ id: T_HOMBRE, sexo: "hombre", cargo: "anciano", congregationId: CONG });
-upsertMemPublisher({ id: T_MUJER, sexo: "mujer", cargo: "publicadora", congregationId: CONG });
-upsertMemPublisher({ id: T_OTRA, sexo: "hombre", cargo: "anciano", congregationId: OTRA });
-upsertMemPublisher({ id: T_SEG, sexo: "hombre", cargo: "publicador", congregationId: CONG });
-upsertMemPublisher({ id: AYU, sexo: "mujer", cargo: "publicadora", congregationId: CONG });
+upsertMemPublisher({ id: T_HOMBRE, sexo: "hombre", ebc: true, congregationId: CONG });
+upsertMemPublisher({ id: T_MUJER, sexo: "mujer", ebc: false, congregationId: CONG });
+upsertMemPublisher({ id: T_OTRA, sexo: "hombre", ebc: true, congregationId: OTRA });
+upsertMemPublisher({ id: T_SEG, sexo: "hombre", ebc: false, congregationId: CONG });
+upsertMemPublisher({ id: AYU, sexo: "mujer", ebc: false, congregationId: CONG });
 
 saveConfirmedMeetings([
   {

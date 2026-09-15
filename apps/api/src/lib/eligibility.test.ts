@@ -16,7 +16,7 @@ function makePub(overrides: Partial<PublisherRef> = {}): PublisherRef {
   return {
     id: "pub-1",
     sexo: "hombre",
-    cargo: "publicador",
+    ebc: false,
     congregationId: "cong-1",
     ...overrides,
   };
@@ -87,7 +87,7 @@ describe("checkEligibility", () => {
 
     it("aceita homem (publicador)", () => {
       const { warnings } = check({
-        titular: makePub({ sexo: "hombre", cargo: "publicador" }),
+        titular: makePub({ sexo: "hombre", ebc: false }),
         part: makePart({ tipoClave: "mwb_tgw_bread" }),
       });
       expect(findWarning(warnings, "solo_varon")).toBeUndefined();
@@ -146,7 +146,7 @@ describe("checkEligibility", () => {
   describe("mwb_lc_cbs: EBC only", () => {
     it("bloqueia publicador", () => {
       const { warnings } = check({
-        titular: makePub({ cargo: "publicador" }),
+        titular: makePub({ ebc: false }),
         part: makePart({ tipoClave: "mwb_lc_cbs" }),
       });
       expect(findWarning(warnings, "ebc_solo_nombrados")?.duro).toBe(true);
@@ -154,7 +154,7 @@ describe("checkEligibility", () => {
 
     it("aceita anciano", () => {
       const { warnings } = check({
-        titular: makePub({ cargo: "anciano" }),
+        titular: makePub({ ebc: true }),
         part: makePart({ tipoClave: "mwb_lc_cbs" }),
       });
       expect(findWarning(warnings, "ebc_solo_nombrados")).toBeUndefined();
@@ -164,7 +164,7 @@ describe("checkEligibility", () => {
   describe("wk_presidente: EBC only", () => {
     it("bloqueia publicador", () => {
       const { warnings } = check({
-        titular: makePub({ cargo: "publicador" }),
+        titular: makePub({ ebc: false }),
         part: makePart({ tipoClave: "wk_presidente" }),
       });
       expect(findWarning(warnings, "ebc_solo_nombrados")?.duro).toBe(true);
@@ -172,7 +172,7 @@ describe("checkEligibility", () => {
 
     it("aceita siervo ministerial", () => {
       const { warnings } = check({
-        titular: makePub({ cargo: "siervo_ministerial" }),
+        titular: makePub({ ebc: true }),
         part: makePart({ tipoClave: "wk_presidente" }),
       });
       expect(findWarning(warnings, "ebc_solo_nombrados")).toBeUndefined();
@@ -182,7 +182,7 @@ describe("checkEligibility", () => {
   describe("wk_sentinela_dirigente: EBC only", () => {
     it("bloqueia publicador", () => {
       const { warnings } = check({
-        titular: makePub({ cargo: "publicador" }),
+        titular: makePub({ ebc: false }),
         part: makePart({ tipoClave: "wk_sentinela_dirigente" }),
       });
       expect(findWarning(warnings, "ebc_solo_nombrados")?.duro).toBe(true);
@@ -192,7 +192,7 @@ describe("checkEligibility", () => {
   describe("w_estudio: EBC only", () => {
     it("bloqueia publicador", () => {
       const { warnings } = check({
-        titular: makePub({ cargo: "publicador" }),
+        titular: makePub({ ebc: false }),
         part: makePart({ tipoClave: "w_estudio" }),
       });
       expect(findWarning(warnings, "ebc_solo_nombrados")?.duro).toBe(true);
@@ -259,7 +259,7 @@ describe("checkEligibility", () => {
 function aceitaQualquerUm(tipoClave: string) {
   it(`aceita homem publicador para ${tipoClave}`, () => {
     const { warnings } = check({
-      titular: makePub({ sexo: "hombre", cargo: "publicador" }),
+      titular: makePub({ sexo: "hombre", ebc: false }),
       part: makePart({ tipoClave }),
     });
     expect(findWarning(warnings, "solo_varon")).toBeUndefined();
@@ -269,7 +269,7 @@ function aceitaQualquerUm(tipoClave: string) {
 
   it(`aceita mulher publicadora para ${tipoClave}`, () => {
     const { warnings } = check({
-      titular: makePub({ sexo: "mujer", cargo: "publicador" }),
+      titular: makePub({ sexo: "mujer", ebc: false }),
       part: makePart({ tipoClave }),
     });
     expect(findWarning(warnings, "solo_varon")).toBeUndefined();
