@@ -3,6 +3,7 @@ import { Button, ScrollView, Text, View } from "react-native";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../lib/auth";
 import { getCongregationId, isNetworkError, publishMeeting } from "../../lib/api";
+import { fmtDate, fmtTime, fmtLastSync } from "../../lib/formatDate";
 import { usePrograma } from "../../hooks/usePrograma";
 import { makePubNameResolver, usePublishers } from "../../hooks/usePublishers";
 import { SkeletonRow } from "../../components/Skeleton";
@@ -80,9 +81,9 @@ export default function Programa() {
           disabled={isFetching}
         />
       </View>
-      {offline ? <Text>{es["Sin conexión"]}</Text> : null}
+      {offline ? <Text style={{ color: "#e74c3c" }}>{es["Sin conexión — verifique la IP del servidor"]}</Text> : null}
       {lastSync && !offline ? (
-        <Text>{es["Sincronizado"]}: {lastSync}</Text>
+        <Text>{es["Sincronizado"]}: {fmtLastSync(lastSync)}</Text>
       ) : null}
 
       {isPending ? <SkeletonRow lines={5} /> : null}
@@ -104,8 +105,8 @@ export default function Programa() {
           >
             <Text style={{ fontWeight: "bold" }}>
               {m.semana_label ? `${m.semana_label} · ` : ""}
-              {m.fecha}
-              {m.hora_inicio ? ` · ${m.hora_inicio}` : ""}
+              {fmtDate(m.fecha)}
+              {m.hora_inicio ? ` · ${fmtTime(m.hora_inicio)}` : ""}
             </Text>
             <Text>
               {m.tipo} · {[...salasReuniao].sort().join(", ")} · {m.parts.length} {es["partes"]} ·{" "}
@@ -156,8 +157,8 @@ export default function Programa() {
                         <Text style={{ color: "#fff", fontSize: 10, fontWeight: "bold" }}>{p.sala}</Text>
                       </View>
                       <Text>
-                        {p.hora_inicio ? `${p.hora_inicio}` : ""}
-                        {p.hora_fin ? ` - ${p.hora_fin}` : ""}
+                        {p.hora_inicio ? `${fmtTime(p.hora_inicio)}` : ""}
+                        {p.hora_fin ? ` - ${fmtTime(p.hora_fin)}` : ""}
                         {p.hora_inicio || p.hora_fin ? " · " : ""}
                         {p.orden}. {p.titulo}
                         {p.duracion_min ? ` (${p.duracion_min} min)` : ""}

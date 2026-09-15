@@ -16,6 +16,7 @@ import {
   type SuggestCandidate,
 } from "../lib/api";
 import type { PublisherRef } from "../hooks/usePublishers";
+import { fmtDate } from "../lib/formatDate";
 
 // ── Re-export filters + helpers ──
 export interface PartFilter {
@@ -312,7 +313,7 @@ export function PartCard({
           {localTitular ? (
             <Text style={{ fontSize: 12, color: "#666" }}>
               {getPubName(localTitular)}
-              {h ? ` · ${h.total} designaciones${h.last_fecha ? `, última: ${h.last_fecha}` : ""}` : ""}
+              {h ? ` · ${h.total} designaciones${h.last_fecha ? `, última: ${fmtDate(h.last_fecha)}` : ""}` : ""}
             </Text>
           ) : null}
 

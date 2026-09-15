@@ -16,6 +16,7 @@ import {
   suggestCandidates,
   type SyncPrayer,
 } from "../../lib/api";
+import { fmtDate } from "../../lib/formatDate";
 import { usePrograma } from "../../hooks/usePrograma";
 import { usePublishers } from "../../hooks/usePublishers";
 import { matchesFilter, PART_FILTERS, PresidentSection, PartCard } from "../../components/AsignarCards";
@@ -147,14 +148,14 @@ export default function Asignar() {
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
       <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Asignar"]}</Text>
       <Text>{es["Sala fija"]}: {es["Sala A"]}</Text>
-      {offline ? <Text>{es["Necesitas conexión para asignar"]}</Text> : null}
+      {offline ? <Text style={{ color: "#e74c3c" }}>{es["Sin conexión — verifique la IP del servidor"]}</Text> : null}
 
       <Text style={{ fontWeight: "bold", fontSize: 16 }}>{es["Reunión"]}</Text>
       {meetings.length === 0 ? <Text>{es["Sin reuniones todavía"]}</Text> : null}
       {meetings.map((m) => (
         <Button
           key={m.id}
-          title={`${m.semana_label ? `${m.semana_label} · ` : ""}${m.fecha} · ${m.tipo}`}
+          title={`${m.semana_label ? `${m.semana_label} · ` : ""}${fmtDate(m.fecha)} · ${m.tipo}`}
           onPress={() => {
             setMeetingId(m.id);
             setExpandedPart(null);

@@ -3,19 +3,8 @@ import { usePrograma } from "../../hooks/usePrograma";
 import { usePublishers } from "../../hooks/usePublishers";
 import { useAuth } from "../../lib/auth";
 import { getCongregationId } from "../../lib/api";
+import { fmtDate, fmtLastSync } from "../../lib/formatDate";
 import es from "../../i18n/es.json";
-
-function formatDate(d: string): string {
-  try {
-    return new Date(d + "T12:00:00").toLocaleDateString("es", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    });
-  } catch {
-    return d;
-  }
-}
 
 export default function Inicio() {
   const { user, logout } = useAuth();
@@ -63,11 +52,9 @@ export default function Inicio() {
 
       <View style={s.card}>
         <Text style={s.label}>{es["Estado"]}</Text>
-        <Text style={s.value}>
-          {offline ? es["Sin conexión"] : "Conectado"}
-        </Text>
+        <Text style={s.value}>Offline — verifique la IP del servidor</Text>
         {lastSync ? (
-          <Text style={s.sub}>Última sincronización: {lastSync}</Text>
+          <Text style={s.sub}>Última sincronización: {fmtLastSync(lastSync)}</Text>
         ) : null}
       </View>
 
@@ -77,7 +64,7 @@ export default function Inicio() {
           <Text style={s.sub}>Cargando...</Text>
         ) : next ? (
           <>
-            <Text style={s.value}>{formatDate(next.fecha)}</Text>
+            <Text style={s.value}>{fmtDate(next.fecha)}</Text>
             <Text style={s.sub}>{next.tipo} · {next.semana_label ?? ""}</Text>
           </>
         ) : (

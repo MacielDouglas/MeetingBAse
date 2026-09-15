@@ -46,5 +46,5 @@ export function toErrorMessage(body: unknown, fallback: string): string {
 
 export function isNetworkError(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
-  return /network|fetch|conexi|connection|failed/i.test(msg);
+  return /network request failed|fetch failed|network|conexi|connection refused|ECONNREFUSED|ENOTFOUND/i.test(msg);
 }

@@ -5,6 +5,7 @@ import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as FileSystem from "expo-file-system/legacy";
 import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
+import { fmtDate } from "../../lib/formatDate";
 import { usePrograma } from "../../hooks/usePrograma";
 import { SkeletonRow } from "../../components/Skeleton";
 import es from "../../i18n/es.json";
@@ -109,7 +110,7 @@ export default function ExportarScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <Button
-              title={`${item.fecha} ${item.tipo}`}
+              title={`${fmtDate(item.fecha)} ${item.tipo}`}
               onPress={() => setSelectedMeetingId(selectedMeetingId === item.id ? null : item.id)}
               color={selectedMeetingId === item.id ? "#1a5276" : "#ccc"}
             />

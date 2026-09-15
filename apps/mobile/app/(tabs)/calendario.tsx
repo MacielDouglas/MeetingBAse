@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import { Text, View, TouchableOpacity, ScrollView } from "react-native";
 import { usePrograma } from "../../hooks/usePrograma";
 import { getCongregationId } from "../../lib/api";
+import { fmtTime } from "../../lib/formatDate";
 import es from "../../i18n/es.json";
 
 const DAYS = ["L", "M", "X", "J", "V", "S", "D"];
@@ -133,7 +134,7 @@ export default function Calendario() {
             <View key={m.id} style={{ gap: 4, padding: 8, backgroundColor: "#fff", borderRadius: 6, borderWidth: 1, borderColor: "#ddd" }}>
               <Text style={{ fontWeight: "600" }}>{m.tipo} · {m.sala}</Text>
               {m.semana_label ? <Text style={{ fontSize: 12, color: "#666" }}>{m.semana_label}</Text> : null}
-              {m.hora_inicio ? <Text style={{ fontSize: 12, color: "#666" }}>Inicio: {m.hora_inicio}</Text> : null}
+              {m.hora_inicio ? <Text style={{ fontSize: 12, color: "#666" }}>Inicio: {fmtTime(m.hora_inicio)}</Text> : null}
               {m.excepcion ? <Text style={{ fontSize: 12, color: "#e67e22" }}>⚠ {m.excepcion}</Text> : null}
               <Text style={{ fontSize: 12, color: "#888" }}>
                 {m.parts.filter((p) => p.titular_id).length}/{m.parts.length} partes asignadas

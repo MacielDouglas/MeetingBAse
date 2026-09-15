@@ -8,6 +8,7 @@ import {
   getUnavailability,
   isNetworkError,
 } from "../../lib/api";
+import { fmtDate } from "../../lib/formatDate";
 import { usePublishers } from "../../hooks/usePublishers";
 import es from "../../i18n/es.json";
 
@@ -147,7 +148,7 @@ export default function AusenciasScreen() {
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "bold" }}>{pubName(item.publisher_id)}</Text>
               <Text style={{ fontSize: 12, color: "#666" }}>
-                {item.fecha_inicio} → {item.fecha_fin}
+                {fmtDate(item.fecha_inicio)} → {fmtDate(item.fecha_fin)}
                 {item.motivo ? ` · ${item.motivo}` : ""}
               </Text>
             </View>

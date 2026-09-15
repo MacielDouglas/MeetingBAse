@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import type { WeekSummary } from "../lib/api";
+import { fmtDate } from "../lib/formatDate";
 import es from "../i18n/es.json";
 
 interface Props {
@@ -18,7 +19,7 @@ export function PreviewList({ weeks }: Props) {
           style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: "#ddd" }}
         >
           <Text style={{ fontWeight: "bold" }}>
-            {item.semana} · {item.fecha}
+            {item.semana} · {fmtDate(item.fecha)}
           </Text>
           <Text>
             {item.lectura} · {item.parts_count} partes · {es["Sala fija"]}:{" "}

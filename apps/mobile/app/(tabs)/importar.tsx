@@ -4,6 +4,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import es from "../../i18n/es.json";
+import { fmtDate } from "../../lib/formatDate";
 import {
   API_URL,
   getCongregationId,
@@ -231,7 +232,7 @@ export default function Importar() {
               }}
             >
               <Text style={{ fontWeight: "bold" }}>
-                {m.semana_label} · {m.fecha}
+                {m.semana_label} · {fmtDate(m.fecha)}
               </Text>
               <Text>
                 {m.tipo} · {es["Sala A"]} · {m.parts.length} partes

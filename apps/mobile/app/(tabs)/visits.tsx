@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, FlatList, Text, TextInput, View, Alert } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, authHeaders, getCongregationId, isNetworkError } from "../../lib/api";
+import { fmtDate } from "../../lib/formatDate";
 import { SearchBar } from "../../components/SearchBar";
 import { SkeletonRow } from "../../components/Skeleton";
 import es from "../../i18n/es.json";
@@ -204,7 +205,7 @@ export default function VisitsScreen() {
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "bold" }}>{getSpeakerName(item.speakerId)}</Text>
               <Text style={{ fontSize: 12, color: "#666" }}>
-                {item.fecha} · {ESTADO_LABELS[item.estado] ?? item.estado}
+                {fmtDate(item.fecha)} · {ESTADO_LABELS[item.estado] ?? item.estado}
                 {item.talkNumber ? ` · Discurso ${item.talkNumber}` : ""}
                 {item.notas ? ` · ${item.notas}` : ""}
               </Text>
