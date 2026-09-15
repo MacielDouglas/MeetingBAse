@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import { Button, ScrollView, Text, View, TouchableOpacity, Modal } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../lib/auth";
-import { getCongregationId, isNetworkError, publishMeeting, getConfig } from "../../lib/api";
+import { getCongregationId, isNetworkError, publishMeeting, getConfig, type PublishResult } from "../../lib/api";
 import { fmtDate, fmtTime, fmtLastSync, getWeekStart, calcMeetingDate, dayNameEs } from "../../lib/formatDate";
 import { usePrograma } from "../../hooks/usePrograma";
 import { makePubNameResolver, usePublishers } from "../../hooks/usePublishers";
@@ -210,7 +210,7 @@ function MeetingCard({
 }: {
   m: ProgramaMeeting;
   pubName: (id: string | null) => string;
-  pubMut: ReturnType<typeof useMutation>;
+  pubMut: ReturnType<typeof useMutation<PublishResult, Error, string>>;
   offline: boolean;
   config: MeetingConfig | null;
 }) {

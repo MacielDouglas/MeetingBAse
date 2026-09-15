@@ -90,7 +90,7 @@ export default function Inicio() {
       if (dayOfWeek) {
         nextMeetingDate = calcMeetingDate(wkStart, dayOfWeek);
         nextMeetingDay = dayNameEs(dayOfWeek);
-        nextMeetingTime = nextMeeting.tipo === "entre_semana" ? config?.midweekTime : config?.weekendTime;
+        nextMeetingTime = (nextMeeting.tipo === "entre_semana" ? config?.midweekTime : config?.weekendTime) ?? "";
       } else {
         nextMeetingDate = nextMeeting.fecha;
         const d = new Date(nextMeeting.fecha + "T00:00:00");
