@@ -18,7 +18,6 @@ function makePub(overrides: Partial<PublisherRef> = {}): PublisherRef {
     sexo: "hombre",
     cargo: "publicador",
     congregationId: "cong-1",
-    privileges: {},
     ...overrides,
   };
 }

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — !DATE!</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }
+  h1 { color: #7d3c98; font-size: 18px; }
+  h2 { color: #7d3c98; font-size: 15px; margin-top: 16px; }
+  .section { margin-bottom: 12px; }
+  .part { margin: 4px 0; padding: 4px 0; border-bottom: 1px solid #eee; }
+  .song { color: #2874a6; font-weight: bold; }
+  .time { color: #888; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>!CONGREGATION_TITLE! — !DATE!</h1>
+
+<div class="section">
+<h2>Discurso público</h2>
+<div class="part"><span class="song">!SONG1!</span> <span class="time">(4 min)</span></div>
+<div class="part">!PT_THEME! <span class="time">(30 min)</span></div>
+#IF !PT_SPEAKER!#
+<div class="part">Orador: !PT_SPEAKER!</div>
+#ENDIF#
+</div>
+
+<div class="section">
+<h2>Estudio de la Atalaya</h2>
+<div class="part">!WT_THEME!</div>
+#IF !WT_CONDUCTOR!#
+<div class="part">Conductor: !WT_CONDUCTOR!</div>
+#ENDIF#
+</div>
+
+<div class="section">
+<div class="part"><span class="song">!SONG2!</span> <span class="time">(4 min)</span></div>
+</div>
+
+#IF !visits!#
+<div class="section">
+<h2>Oradores de la semana</h2>
+#REPEAT_START!visits!#
+<div class="part">!visit_fecha! — <strong>!visit_speaker!</strong>: !visit_talk!</div>
+#REPEAT_END#
+</div>
+#ENDIF#
+</body>
+</html>

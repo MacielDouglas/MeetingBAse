@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — Programa combinado — !DATE!</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+  h1 { font-size: 16px; text-align: center; }
+  h2 { font-size: 13px; padding: 4px 8px; margin: 10px 0 4px; }
+  h2.mw { background: #1a5276; color: #fff; }
+  h2.we { background: #7d3c98; color: #fff; }
+  table { width: 100%; border-collapse: collapse; }
+  td { border: 1px solid #ddd; padding: 4px 6px; vertical-align: top; }
+  .time { font-weight: bold; white-space: nowrap; width: 48px; color: #1a5276; }
+  .time-we { color: #7d3c98; }
+  .who { color: #555; }
+</style>
+</head>
+<body>
+<h1>!CONGREGATION_TITLE! — !DATE!</h1>
+
+<h2 class="mw">Reunión de entre semana</h2>
+<table>
+<tr><td class="time">!GW1_STARTTIME!</td><td>!GW1_THEME! <span class="who">· !GW1_SPEAKER!</span></td></tr>
+<tr><td class="time">!GW2_STARTTIME!</td><td>!GW2_THEME!</td></tr>
+<tr><td class="time">!GW3_STARTTIME!</td><td>!GW3_THEME!</td></tr>
+<tr><td class="time">!FM1_STARTTIME!</td><td>!FM1_THEME! <span class="who">· !FM1_SPEAKER_A!</span></td></tr>
+<tr><td class="time">!FM2_STARTTIME!</td><td>!FM2_THEME! <span class="who">· !FM2_SPEAKER_A!</span></td></tr>
+<tr><td class="time">!SONG2_STARTTIME!</td><td>!SONG2!</td></tr>
+<tr><td class="time">!CL1_STARTTIME!</td><td>!CL1_THEME! <span class="who">· !CL1_SPEAKER_A!</span></td></tr>
+<tr><td class="time">!CBS_STARTTIME!</td><td>!CBS_THEME! <span class="who">· !CBS_SPEAKER_A!</span></td></tr>
+<tr><td class="time">!SONG3_STARTTIME!</td><td>!SONG3!</td></tr>
+</table>
+
+<h2 class="we">Reunión del fin de semana</h2>
+<table>
+<tr><td class="time time-we">!PT_STARTTIME!</td><td><b>!PT_THEME!</b> <span class="who">· !PT_SPEAKER!</span></td></tr>
+<tr><td class="time time-we">!WT_STARTTIME!</td><td><b>!WT_THEME!</b> <span class="who">· !WT_CONDUCTOR!</span></td></tr>
+</table>
+
+#IF !visits!#
+<h2 class="we">Oradores externos</h2>
+<table>
+<tr><th>Fecha</th><th>Orador</th><th>Discurso</th></tr>
+#REPEAT_START!visits!#
+<tr><td>!visit_fecha!</td><td>!visit_speaker!</td><td>!visit_talk!</td></tr>
+#REPEAT_END#
+</table>
+#ENDIF#
+
+</body>
+</html>

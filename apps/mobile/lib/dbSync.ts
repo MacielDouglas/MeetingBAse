@@ -22,7 +22,7 @@ export async function saveSyncPayload(
     }
     for (const m of payload.meetings ?? []) {
       d.runSync(
-        "INSERT OR REPLACE INTO meetings (id, congregation_id, import_id, fecha, tipo, semana_label, estado, sala, hora_inicio, lectura_semanal, titulo_atalaya, cancion_inicial, cancion_intermedia, cancion_final) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO meetings (id, congregation_id, import_id, fecha, tipo, semana_label, estado, sala, hora_inicio, lectura_semanal, titulo_atalaya, cancion_inicial, cancion_intermedia, cancion_final, excepcion, visita_co) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         str(m.id),
         str(m.congregation_id ?? congregationId, congregationId),
         str((m as { import_id?: unknown }).import_id ?? ""),
@@ -36,12 +36,14 @@ export async function saveSyncPayload(
         (m.titulo_atalaya as string | null) ?? null,
         (m.cancion_inicial as number | null) ?? null,
         (m.cancion_intermedia as number | null) ?? null,
-        (m.cancion_final as number | null) ?? null
+        (m.cancion_final as number | null) ?? null,
+        (m.excepcion as string | null) ?? null,
+        (m.visita_co as boolean | null) ?? false
       );
     }
     for (const p of payload.parts ?? []) {
       d.runSync(
-        "INSERT OR REPLACE INTO parts (id, meeting_id, orden, seccion, tipo_clave, titulo, sala, requiere_ayudante, needs_review, duracion_min, hora_inicio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO parts (id, meeting_id, orden, seccion, tipo_clave, titulo, sala, requiere_ayudante, needs_review, duracion_min, hora_inicio, hora_fin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         str(p.id),
         str(p.meeting_id),
         num(p.orden),
@@ -52,7 +54,8 @@ export async function saveSyncPayload(
         p.requiere_ayudante ? 1 : 0,
         p.needs_review ? 1 : 0,
         (p.duracion_min as number | null) ?? null,
-        (p.hora_inicio as string | null) ?? null
+        (p.hora_inicio as string | null) ?? null,
+        (p.hora_fin as string | null) ?? null
       );
     }
     for (const a of payload.assignments ?? []) {

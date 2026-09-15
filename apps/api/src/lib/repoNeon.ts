@@ -36,6 +36,7 @@ export interface MeetingDraftIn {
     requiereAyudante: boolean;
     needsReview?: boolean;
     horaInicio?: string | null;
+    horaFin?: string | null;
     sala: "A";
   }[];
 }
@@ -56,6 +57,8 @@ export interface ListedMeeting {
   cancion_inicial: number | null;
   cancion_intermedia: number | null;
   cancion_final: number | null;
+  excepcion: string | null;
+  visita_co: boolean;
   parts_count: number;
   parts: {
     id: string;
@@ -68,6 +71,7 @@ export interface ListedMeeting {
     needs_review: boolean;
     duracion_min: number | null;
     hora_inicio: string | null;
+    hora_fin: string | null;
   }[];
 }
 
@@ -109,6 +113,8 @@ export async function saveConfirm(
         semanaLabel: m.semana_label ?? null,
         estado: "draft",
         horaInicio: m.hora_inicio ?? null,
+        excepcion: null,
+        visitaCO: false,
         updatedAt: new Date(),
       });
       done.push(m.id);
@@ -127,6 +133,7 @@ export async function saveConfirm(
           requiereAyudante: p.requiereAyudante,
           needsReview: p.needsReview ?? false,
           horaInicio: p.horaInicio ?? null,
+          horaFin: p.horaFin ?? null,
         });
       }
     }
@@ -192,6 +199,8 @@ export async function listMeetings(
         cancion_inicial: m.cancionInicial ?? null,
         cancion_intermedia: m.cancionIntermedia ?? null,
         cancion_final: m.cancionFinal ?? null,
+        excepcion: m.excepcion ?? null,
+        visita_co: m.visitaCO ?? false,
         parts_count: ps.length,
         parts: ps.map((p) => ({
           id: p.id,
@@ -204,6 +213,7 @@ export async function listMeetings(
           needs_review: p.needsReview,
           duracion_min: p.duracionMin ?? null,
           hora_inicio: p.horaInicio ?? null,
+          hora_fin: p.horaFin ?? null,
         })),
       });
     }

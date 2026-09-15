@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — Fichas de oradores — !DATE!</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+  h1 { color: #7d3c98; font-size: 15px; text-align: center; margin-bottom: 8px; }
+  .slip { border: 2px solid #7d3c98; border-radius: 8px; padding: 12px; margin: 8px 0; page-break-inside: avoid; display: flex; gap: 12px; }
+  .slip-left { flex: 1; }
+  .slip-right { flex: 0 0 35%; border-left: 2px dashed #ccc; padding-left: 12px; }
+  .label { font-weight: bold; color: #7d3c98; font-size: 11px; text-transform: uppercase; }
+  .value { margin-bottom: 8px; font-size: 12px; }
+  .notes { border-top: 1px dashed #ccc; margin-top: 8px; padding-top: 4px; font-size: 11px; color: #555; }
+  .cut-line { border-top: 1px dashed #999; margin: 4px 0; }
+</style>
+</head>
+<body>
+<h1>Fichas de oradores — !DATE!</h1>
+<p style="text-align:center; color:#555">!CONGREGATION_TITLE!</p>
+
+#REPEAT_START!visits!#
+<div class="slip">
+  <div class="slip-left">
+    <div class="label">Orador</div>
+    <div class="value" style="font-size:14px; font-weight:bold">!visit_speaker!</div>
+    <div class="label">Discurso</div>
+    <div class="value">!visit_talk!</div>
+    <div class="label">Fecha</div>
+    <div class="value">!visit_fecha!</div>
+  </div>
+  <div class="slip-right">
+    <div class="label">Notas</div>
+    <div class="notes">!visit_notas!</div>
+  </div>
+</div>
+<div class="cut-line"></div>
+#REPEAT_END#
+
+</body>
+</html>

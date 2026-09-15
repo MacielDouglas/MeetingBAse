@@ -77,6 +77,8 @@ export function buildSyncPayload(
       cancion_inicial: m.cancion_inicial ?? null,
       cancion_intermedia: m.cancion_intermedia ?? null,
       cancion_final: m.cancion_final ?? null,
+      excepcion: m.excepcion ?? null,
+      visita_co: m.visita_co ?? false,
     })),
     parts: keepM.flatMap((m) =>
       m.parts.map((p) => ({
@@ -91,6 +93,7 @@ export function buildSyncPayload(
         needs_review: p.needs_review,
         duracion_min: p.duracion_min ?? null,
         hora_inicio: p.hora_inicio ?? null,
+        hora_fin: p.hora_fin ?? null,
       }))
     ),
     assignments: keepA.filter((a) => meetingIds.has(a.meeting_id)),

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — Oradores externos — !DATE!</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+  h1 { color: #7d3c98; font-size: 16px; text-align: center; }
+  h2 { color: #fff; background: #7d3c98; font-size: 13px; padding: 4px 8px; margin: 12px 0 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th { background: #e8daef; font-size: 11px; padding: 4px 6px; border: 1px solid #ccc; }
+  td { border: 1px solid #ddd; padding: 4px 6px; vertical-align: top; font-size: 12px; }
+  .date { font-weight: bold; color: #7d3c98; }
+  .speaker { font-weight: bold; }
+  .theme { color: #555; }
+  .approved { color: #27ae60; font-size: 10px; }
+</style>
+</head>
+<body>
+<h1>Oradores externos</h1>
+<p style="text-align:center">!CONGREGATION_TITLE! — !TITLE! — !DATE!</p>
+
+<table>
+<tr><th>Fecha</th><th>Orador</th><th>Discurso</th><th>Teléfono</th></tr>
+#REPEAT_START!visits!#
+<tr>
+  <td class="date">!visit_fecha!</td>
+  <td class="speaker">!visit_speaker!</td>
+  <td class="theme">!visit_talk!</td>
+  <td></td>
+</tr>
+#REPEAT_END#
+</table>
+
+<h2>Próximos oradores</h2>
+<table>
+<tr><th>Fecha</th><th>Orador</th><th>Discurso</th><th>Notas</th></tr>
+#REPEAT_START!visits!#
+<tr>
+  <td class="date">!visit_fecha!</td>
+  <td class="speaker">!visit_speaker!</td>
+  <td class="theme">!visit_talk!</td>
+  <td>!visit_notas!</td>
+</tr>
+#REPEAT_END#
+</table>
+
+</body>
+</html>

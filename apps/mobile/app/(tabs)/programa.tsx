@@ -94,6 +94,18 @@ export default function Programa() {
               {m.tipo} · {es["Sala A"]} · {m.parts.length} {es["partes"]} ·{" "}
               {estadoLabel(m.estado)}
             </Text>
+            {m.excepcion ? (
+              <Text style={{ color: "#e67e22", fontWeight: "bold" }}>
+                {m.excepcion === "convencao" ? "🏠 Convenção" : 
+                 m.excepcion === "sin_reunion" ? "🚫 Sin reunión" : 
+                 "💻 Convenção virtual"}
+              </Text>
+            ) : null}
+            {m.visita_co ? (
+              <Text style={{ color: "#3498db", fontWeight: "bold" }}>
+                👔 Visita del superintendente de circuito
+              </Text>
+            ) : null}
             {m.lectura_semanal ? <Text>{m.lectura_semanal}</Text> : null}
             {m.titulo_atalaya ? <Text>{m.titulo_atalaya}</Text> : null}
             {m.prayers.length > 0 ? (
@@ -124,11 +136,13 @@ export default function Programa() {
             {open
               ? m.parts.map((p) => (
                   <View key={p.id} style={{ paddingLeft: 12, paddingVertical: 4, gap: 2 }}>
-                    <Text>
-                      {p.hora_inicio ? `${p.hora_inicio} · ` : ""}
-                      {p.orden}. {p.titulo}
-                      {p.duracion_min ? ` (${p.duracion_min} min)` : ""}
-                    </Text>
+            <Text>
+              {p.hora_inicio ? `${p.hora_inicio}` : ""}
+              {p.hora_fin ? ` - ${p.hora_fin}` : ""}
+              {p.hora_inicio || p.hora_fin ? " · " : ""}
+              {p.orden}. {p.titulo}
+              {p.duracion_min ? ` (${p.duracion_min} min)` : ""}
+            </Text>
                     <Text>
                       {es["Titular"]}:{" "}
                       {p.titular_id ? pubName(p.titular_id) : es["Sin asignar"]}

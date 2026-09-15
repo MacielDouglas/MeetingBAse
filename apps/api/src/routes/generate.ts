@@ -79,7 +79,7 @@ export async function generateRoutes(app: FastifyInstance) {
       }
     }
 
-    // Add speakers for speaker templates
+    // Add oradores for speaker templates
     if (template.id === "pt-speakers") {
       const speakers = await listSpeakers(params.data.id);
       repeats.push({
@@ -91,6 +91,30 @@ export async function generateRoutes(app: FastifyInstance) {
           SPEAKER_TALKS: s.talkNumbers.join(", "),
         })),
       });
+    }
+
+    // Add visits for templates that need them
+    const visitsTemplates = ["we-calllist", "we-outgoing-1", "we-outgoing-2", "we-outgoing-slips", "we-handout-v2", "combo-3"];
+    if (visitsTemplates.includes(template.id)) {
+      const { listVisits } = await import("../lib/speakersStore.js");
+      const visits = await listVisits(params.data.id);
+      if (visits.length > 0) {
+        const talks = getTalkCatalog(params.data.id);
+        const speakersAll = await listSpeakers(params.data.id);
+        repeats.push({
+          key: "visits",
+          rows: visits.map((v) => {
+            const sp = speakersAll.find((s) => s.id === v.speakerId);
+            const tk = v.talkNumber ? talks.find((t) => t.number === v.talkNumber) : undefined;
+            return {
+              visit_fecha: v.fecha,
+              visit_speaker: sp?.nombre ?? "",
+              visit_talk: tk?.title ?? v.talkNumber ? `Discurso ${v.talkNumber}` : "",
+              visit_notas: v.notas ?? "",
+            };
+          }),
+        });
+      }
     }
 
     const rendered = renderTemplate(html, vars, repeats);

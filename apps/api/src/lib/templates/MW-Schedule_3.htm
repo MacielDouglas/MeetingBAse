@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — Escala MW compacta — !DATE!</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; font-size: 13px; }
+  h1 { color: #1a5276; font-size: 16px; }
+  h2 { color: #1a5276; font-size: 13px; background: #eaf2f8; padding: 4px 8px; margin: 10px 0 4px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { border: 1px solid #ddd; padding: 4px 6px; vertical-align: top; }
+  .time { color: #1a5276; font-weight: bold; white-space: nowrap; width: 52px; }
+  .who { color: #555; font-style: italic; }
+  .song { color: #2874a6; }
+</style>
+</head>
+<body>
+<h1>!CONGREGATION_TITLE! — !DATE!</h1>
+
+<table>
+<tr><td class="time">!GW1_STARTTIME!</td><td class="song">!SONG1!</td><td></td></tr>
+<tr><td class="time">!GW1_STARTTIME!</td><td>!GW1_THEME!</td><td class="who">!GW1_SPEAKER!</td></tr>
+<tr><td class="time">!GW2_STARTTIME!</td><td>!GW2_THEME!</td><td></td></tr>
+<tr><td class="time">!GW3_STARTTIME!</td><td>!GW3_THEME!</td><td></td></tr>
+</table>
+
+<h2>Seamos mejores maestros</h2>
+<table>
+<tr><td class="time">!FM1_STARTTIME!</td><td>!FM1_THEME!</td><td class="who">!FM1_SPEAKER_A!</td></tr>
+<tr><td class="time">!FM2_STARTTIME!</td><td>!FM2_THEME!</td><td class="who">!FM2_SPEAKER_A!</td></tr>
+<tr><td class="time">!FM3_STARTTIME!</td><td>!FM3_THEME!</td><td class="who">!FM3_SPEAKER_A!</td></tr>
+<tr><td class="time">!FM4_STARTTIME!</td><td>!FM4_THEME!</td><td class="who">!FM4_SPEAKER_A!</td></tr>
+</table>
+
+<h2>Nuestra vida cristiana</h2>
+<table>
+<tr><td class="time">!SONG2_STARTTIME!</td><td class="song">!SONG2!</td><td></td></tr>
+<tr><td class="time">!CL1_STARTTIME!</td><td>!CL1_THEME!</td><td class="who">!CL1_SPEAKER_A!</td></tr>
+<tr><td class="time">!CL2_STARTTIME!</td><td>!CL2_THEME!</td><td class="who">!CL2_SPEAKER_A!</td></tr>
+<tr><td class="time">!CBS_STARTTIME!</td><td><strong>EBC</strong>: !CBS_THEME!</td><td class="who">!CBS_SPEAKER_A!</td></tr>
+<tr><td class="time">!SONG3_STARTTIME!</td><td class="song">!SONG3!</td><td></td></tr>
+</table>
+
+#IF !LECTURA_SEMANAL!#
+<p><strong>Lectura semanal:</strong> !LECTURA_SEMANAL!</p>
+#ENDIF#
+</body>
+</html>

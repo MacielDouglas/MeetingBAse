@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb, isDbConfigured } from "../../../../packages/db/db.js";
 import { speakers as speakersTable, visits as visitsTable } from "../../../../packages/db/schema.js";
 
-// Fase 5 — speakers + visits store. Neon first, in-memory fallback.
+// Fase 5 — oradores + visitas store. Neon first, in-memory fallback.
 
 export interface Speaker {
   id: string;

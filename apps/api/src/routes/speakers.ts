@@ -25,7 +25,7 @@ const updateSpeakerBody = z.object({
 });
 
 const visitBody = z.object({
-  speaker_id: z.string().uuid({ message: "Falante inválido" }),
+  speaker_id: z.string().uuid({ message: "Orador inválido" }),
   fecha: z.string().min(1, { message: "Fecha requerida" }),
   talk_number: z.number().int().min(1).optional(),
   notas: z.string().optional(),
@@ -51,7 +51,7 @@ export async function speakersRoutes(app: FastifyInstance) {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
     const s = await getSpeaker(params.data.id, (req.params as { sid: string }).sid);
-    if (!s) return reply.code(404).send({ error: "Falante no encontrado" });
+    if (!s)     return reply.code(404).send({ error: "Orador no encontrado" });
     return { speaker: s };
   });
 
@@ -85,7 +85,7 @@ export async function speakersRoutes(app: FastifyInstance) {
       delete data.talk_numbers;
     }
     const s = await updateSpeaker(params.data.id, (req.params as { sid: string }).sid, data as Parameters<typeof updateSpeaker>[2]);
-    if (!s) return reply.code(404).send({ error: "Falante no encontrado" });
+    if (!s)     return reply.code(404).send({ error: "Orador no encontrado" });
     return { speaker: s };
   });
 
@@ -93,7 +93,7 @@ export async function speakersRoutes(app: FastifyInstance) {
     const params = congIdParam.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: "Congregación inválida" });
     const ok = await deleteSpeaker(params.data.id, (req.params as { sid: string }).sid);
-    if (!ok) return reply.code(404).send({ error: "Falante no encontrado" });
+    if (!ok)     return reply.code(404).send({ error: "Orador no encontrado" });
     return { ok: true };
   });
 
@@ -113,7 +113,7 @@ export async function speakersRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: body.error.issues[0].message });
     }
     const s = await getSpeaker(params.data.id, body.data.speaker_id);
-    if (!s) return reply.code(404).send({ error: "Falante no encontrado" });
+    if (!s)     return reply.code(404).send({ error: "Orador no encontrado" });
     const v = await createVisit(params.data.id, {
       speakerId: body.data.speaker_id,
       fecha: body.data.fecha,

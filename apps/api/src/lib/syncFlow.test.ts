@@ -26,6 +26,8 @@ function meeting(id: string, updatedAt: string): ListedMeeting {
     cancion_inicial: null,
     cancion_intermedia: null,
     cancion_final: null,
+    excepcion: null,
+    visita_co: false,
     parts_count: 1,
     parts: [
       {
@@ -39,6 +41,7 @@ function meeting(id: string, updatedAt: string): ListedMeeting {
         needs_review: false,
         duracion_min: 10,
         hora_inicio: "19:00",
+        hora_fin: "19:10",
       },
     ],
   };

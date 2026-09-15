@@ -1,7 +1,7 @@
 // Template engine for TheocBase-style .htm templates.
 // Variables: !VAR! | Conditionals: #IF !VAR!#...#ELSE#...#ENDIF#
 // Loops: #REPEAT_START!VAR!#...#REPEAT_END# | #TERRITORY_START#...#TERRITORY_END#
-// #SPEAKER_START#...#SPEAKER_END#
+// #SPEAKER_START#...#SPEAKER_END# (oradores)
 
 export interface TemplateVars {
   [key: string]: string | number | undefined;
@@ -267,6 +267,13 @@ export const AVAILABLE_TEMPLATES: TemplateInfo[] = [
   { id: "we-schedule", name: "Escala WE", description: "Escala reunião fim de semana", filename: "WE-Schedule_1.htm" },
   { id: "we-schedule-2", name: "Escala WE elegante", description: "Escala WE com horários", filename: "WE-Schedule_2.htm" },
   { id: "combo-2", name: "Combinado elegante", description: "Combinado MW+WE elegante", filename: "COMBO_2.htm" },
-  { id: "pt-speakers", name: "Lista de falantes", description: "Lista de falantes públicos", filename: "PT-TalksOfSpeakers_Simple.htm" },
+  { id: "pt-speakers", name: "Lista de oradores", description: "Lista de oradores públicos", filename: "PT-TalksOfSpeakers_Simple.htm" },
   { id: "we-calllist", name: "Lista de llamadas", description: "Lista de llamadas palestras públicas", filename: "WE-CallList.htm" },
+  { id: "mw-worksheet", name: "Hoja de trabajo MW", description: "Hoja de trabajo del instructor", filename: "MW-Worksheet.htm" },
+  { id: "mw-schedule-3", name: "Escala MW compacta", description: "Escala MW formato compacto con horários", filename: "MW-Schedule_3.htm" },
+  { id: "we-outgoing-1", name: "Oradores externos", description: "Calendario de oradores externos (colorido)", filename: "WE-OutgoingSchedule_1.htm" },
+  { id: "we-outgoing-2", name: "Oradores externos elegante", description: "Calendario de oradores externos (elegante)", filename: "WE-OutgoingSchedule_2.htm" },
+  { id: "we-outgoing-slips", name: "Fichas de oradores", description: "Fichas recortables de oradores externos", filename: "WE-OutgoingSlips.htm" },
+  { id: "we-handout-v2", name: "Folha de mano WE+", description: "Folha de mano WE con oradores externos", filename: "WE-Schedule_Handout.htm" },
+  { id: "combo-3", name: "Combinado con oradores", description: "Programa combinado MW+WE con oradores externos", filename: "COMBO_3.htm" },
 ];

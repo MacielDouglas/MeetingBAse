@@ -23,6 +23,7 @@ export interface ProgramaPart {
   needs_review: boolean;
   duracion_min: number | null;
   hora_inicio: string | null;
+  hora_fin: string | null;
   titular_id: string | null;
   ayudante_id: string | null;
   warnings: ProgramaWarning[];
@@ -47,6 +48,8 @@ export interface ProgramaMeeting {
   cancion_inicial: number | null;
   cancion_intermedia: number | null;
   cancion_final: number | null;
+  excepcion: string | null;
+  visita_co: boolean;
   parts: ProgramaPart[];
   prayers: ProgramaPrayer[];
 }
@@ -69,8 +72,10 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
     cancion_inicial: number | null;
     cancion_intermedia: number | null;
     cancion_final: number | null;
+    excepcion: string | null;
+    visita_co: number;
   }>(
-    "SELECT id, fecha, tipo, semana_label, estado, sala, hora_inicio, lectura_semanal, titulo_atalaya, cancion_inicial, cancion_intermedia, cancion_final FROM meetings WHERE congregation_id = ? ORDER BY fecha ASC",
+    "SELECT id, fecha, tipo, semana_label, estado, sala, hora_inicio, lectura_semanal, titulo_atalaya, cancion_inicial, cancion_intermedia, cancion_final, excepcion, visita_co FROM meetings WHERE congregation_id = ? ORDER BY fecha ASC",
     congregationId
   );
   if (ms.length === 0) return [];
@@ -86,8 +91,9 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
     needs_review: number;
     duracion_min: number | null;
     hora_inicio: string | null;
+    hora_fin: string | null;
   }>(
-    "SELECT id, meeting_id, orden, seccion, tipo_clave, titulo, sala, requiere_ayudante, needs_review, duracion_min, hora_inicio FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?) ORDER BY meeting_id, orden ASC",
+    "SELECT id, meeting_id, orden, seccion, tipo_clave, titulo, sala, requiere_ayudante, needs_review, duracion_min, hora_inicio, hora_fin FROM parts WHERE meeting_id IN (SELECT id FROM meetings WHERE congregation_id = ?) ORDER BY meeting_id, orden ASC",
     congregationId
   );
   const as = d.getAllSync<{
@@ -162,6 +168,7 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
       needs_review: p.needs_review === 1,
       duracion_min: p.duracion_min,
       hora_inicio: p.hora_inicio,
+      hora_fin: p.hora_fin,
       titular_id: a?.titular_id ?? null,
       ayudante_id: a?.ayudante_id ?? null,
       warnings: warnsByPart.get(p.id) ?? [],
@@ -181,6 +188,8 @@ export async function loadPrograma(congregationId: string): Promise<ProgramaMeet
     cancion_inicial: m.cancion_inicial,
     cancion_intermedia: m.cancion_intermedia,
     cancion_final: m.cancion_final,
+    excepcion: m.excepcion,
+    visita_co: m.visita_co === 1,
     parts: partsByMeeting.get(m.id) ?? [],
     prayers: prayersByMeeting.get(m.id) ?? [],
   }));

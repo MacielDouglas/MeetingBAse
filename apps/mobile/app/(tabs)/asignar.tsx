@@ -32,7 +32,6 @@ const canEbc = (cargo: string) => EBC.has(cargo.trim().toLowerCase());
 interface PartFilter {
   maleOnly?: boolean;
   ebcOnly?: boolean;
-  privilege?: string;
   helperRequired?: boolean;
   helperSameSex?: boolean;
   helperFamilyAllowed?: boolean;
@@ -64,7 +63,6 @@ const PART_FILTERS: Record<string, PartFilter> = {
 function matchesFilter(p: PublisherRef, f: PartFilter): boolean {
   if (f.maleOnly && !isMale(p.sexo)) return false;
   if (f.ebcOnly && !canEbc(p.cargo)) return false;
-  if (f.privilege && !p.privileges[f.privilege]) return false;
   return true;
 }
 

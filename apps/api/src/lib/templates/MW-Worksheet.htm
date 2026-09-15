@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — Hoja de trabajo del instructor — !DATE!</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+  h1 { color: #1a5276; font-size: 15px; margin-bottom: 4px; }
+  h2 { color: #555; font-size: 13px; margin: 12px 0 6px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .card { border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin: 8px 0; display: flex; gap: 12px; }
+  .card-left { flex: 0 0 30%; border-right: 3px solid #888; padding-right: 10px; }
+  .card-center { flex: 1; }
+  .card-right { flex: 0 0 25%; text-align: center; }
+  .theme { font-weight: bold; font-size: 13px; }
+  .student { font-style: italic; color: #555; }
+  .source { color: #1a5276; font-size: 11px; }
+  .time-circle { display: inline-block; width: 36px; height: 36px; border-radius: 50%; background: #1a5276; color: #fff; line-height: 36px; text-align: center; font-weight: bold; font-size: 12px; }
+  .study { color: #888; font-size: 11px; }
+  .notes { border-bottom: 1px dotted #ccc; min-height: 20px; }
+  .gw { border-left-color: #888; }
+  .fm { border-left-color: #d4ac0d; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
+  th, td { border: 1px solid #ddd; padding: 4px 6px; text-align: left; }
+  th { background: #f5f5f5; font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>!CONGREGATION_TITLE! — Hoja de trabajo del instructor</h1>
+<p><strong>!DATE!</strong> — !TITLE!</p>
+
+<h2>Tesoros de la Palabra de Dios</h2>
+<div class="card gw">
+  <div class="card-left">
+    <div class="theme">!GW1_THEME!</div>
+    <div class="source">!GW1_SOURCE!</div>
+  </div>
+  <div class="card-center">
+    <div class="notes"></div>
+  </div>
+  <div class="card-right">
+    <div class="time-circle">!GW1_TIME!</div>
+  </div>
+</div>
+
+<div class="card gw">
+  <div class="card-left">
+    <div class="theme">!GW2_THEME!</div>
+    <div class="source">!GW2_SOURCE!</div>
+  </div>
+  <div class="card-center">
+    <div class="notes"></div>
+  </div>
+  <div class="card-right">
+    <div class="time-circle">!GW2_TIME!</div>
+  </div>
+</div>
+
+<div class="card gw">
+  <div class="card-left">
+    <div class="theme">!GW3_THEME!</div>
+    <div class="student">!GW3_SPEAKER!</div>
+    <div class="source">!GW3_SOURCE!</div>
+  </div>
+  <div class="card-center">
+    <div class="notes"></div>
+  </div>
+  <div class="card-right">
+    <div class="time-circle">!GW3_TIME!</div>
+  </div>
+</div>
+
+<h2>Haz tu mejor ministerio</h2>
+#IF !FM1_THEME!#
+<div class="card fm">
+  <div class="card-left">
+    <div class="theme">!FM1_THEME!</div>
+    <div class="student">!FM1_SPEAKER_A!</div>
+    #IF !FM1_ASSISTANT_A!#<div class="student">Ayudante: !FM1_ASSISTANT_A!</div>#ENDIF#
+    <div class="source">!FM1_SOURCE!</div>
+  </div>
+  <div class="card-center">
+    <div class="notes"></div>
+  </div>
+  <div class="card-right">
+    <div class="time-circle">!FM1_TIME!</div>
+  </div>
+</div>
+#ENDIF#
+
+#IF !FM2_THEME!#
+<div class="card fm">
+  <div class="card-left">
+    <div class="theme">!FM2_THEME!</div>
+    <div class="student">!FM2_SPEAKER_A!</div>
+    #IF !FM2_ASSISTANT_A!#<div class="student">Ayudante: !FM2_ASSISTANT_A!</div>#ENDIF#
+    <div class="source">!FM2_SOURCE!</div>
+  </div>
+  <div class="card-center">
+    <div class="notes"></div>
+  </div>
+  <div class="card-right">
+    <div class="time-circle">!FM2_TIME!</div>
+  </div>
+</div>
+#ENDIF#
+
+#IF !FM3_THEME!#
+<div class="card fm">
+  <div class="card-left">
+    <div class="theme">!FM3_THEME!</div>
+    <div class="student">!FM3_SPEAKER_A!</div>
+    <div class="source">!FM3_SOURCE!</div>
+  </div>
+  <div class="card-center">
+    <div class="notes"></div>
+  </div>
+  <div class="card-right">
+    <div class="time-circle">!FM3_TIME!</div>
+  </div>
+</div>
+#ENDIF#
+
+#IF !FM4_THEME!#
+<div class="card fm">
+  <div class="card-left">
+    <div class="theme">!FM4_THEME!</div>
+    <div class="student">!FM4_SPEAKER_A!</div>
+    <div class="source">!FM4_SOURCE!</div>
+  </div>
+  <div class="card-center">
+    <div class="notes"></div>
+  </div>
+  <div class="card-right">
+    <div class="time-circle">!FM4_TIME!</div>
+  </div>
+</div>
+#ENDIF#
+
+<h2>Nuestra vida cristiana</h2>
+<table>
+<tr><th>Parte</th><th>Tema</th><th>Tiempo</th></tr>
+<tr><td>!CL1_THEME!</td><td></td><td>!CL1_TIME!</td></tr>
+<tr><td>!CL2_THEME!</td><td></td><td>!CL2_TIME!</td></tr>
+<tr><td>!CBS_THEME!</td><td>Conductor: !CBS_CONDUCTOR! · Lector: !CBS_READER!</td><td>!CBS_TIME!</td></tr>
+</table>
+
+<h2>Programa de la próxima semana</h2>
+<table>
+<tr><th>Parte</th><th>Tema</th></tr>
+<tr><td>Tesoros 1</td><td>!GW1_THEME_NW!</td></tr>
+<tr><td>Tesoros 2</td><td>!GW2_THEME_NW!</td></tr>
+<tr><td>Tesoros 3</td><td>!GW3_THEME_NW!</td></tr>
+<tr><td>AYF 1</td><td>!FM1_THEME_NW!</td></tr>
+</table>
+
+</body>
+</html>

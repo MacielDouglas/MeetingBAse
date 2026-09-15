@@ -8,7 +8,6 @@ export interface PublisherRef {
   cargo: string;
   congregationId: string;
   familiaId?: string | null;
-  privileges?: Record<string, boolean>;
 }
 
 export interface PartRef {
@@ -56,17 +55,11 @@ function sameSex(a: PublisherRef, b: PublisherRef): boolean {
   return norm(a.sexo) === norm(b.sexo);
 }
 
-function hasPrivilege(pub: PublisherRef, field: string): boolean {
-  if (!pub.privileges) return false;
-  return pub.privileges[field] === true;
-}
-
 // ── regras por tipoClave (TODAS Duro) ──
 
 interface PartRule {
   titularMale?: boolean;
   titularEbc?: boolean;
-  titularPrivilege?: string;
   helperRequired?: boolean;
   helperSameSex?: boolean;
   helperFamilyAllowed?: boolean;
@@ -146,15 +139,6 @@ export function checkEligibility(input: EligibilityInput): {
       warnings.push({
         tipo: "ebc_solo_nombrados",
         mensajeEs: "Solo un anciano o siervo ministerial puede tomar esta parte",
-        duro: true,
-      });
-    }
-
-    // Privilegio requerido
-    if (rule.titularPrivilege && !hasPrivilege(titular, rule.titularPrivilege)) {
-      warnings.push({
-        tipo: "privilegio_requerido",
-        mensajeEs: `No tiene el privilegio requerido: ${rule.titularPrivilege}`,
         duro: true,
       });
     }

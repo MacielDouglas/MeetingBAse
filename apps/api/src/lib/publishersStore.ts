@@ -3,30 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { getDb, isDbConfigured } from "../../../../packages/db/db.js";
 import { publishers as publishersTable } from "../../../../packages/db/schema.js";
 
-// Fase 5 — publishers store. Neon first, in-memory fallback.
-
-export interface PublisherPrivileges {
-  cabezaFamilia: boolean;
-  presidenteSemana: boolean;
-  tesourosDiscurso: boolean;
-  tesourosJoias: boolean;
-  tesourosLeitura: boolean;
-  ministerioIniciar: boolean;
-  ministerioCultivar: boolean;
-  ministerioDiscipulos: boolean;
-  ministerioExplicar: boolean;
-  ministerioAjudante: boolean;
-  ministerioDiscurso: boolean;
-  ministerioOque: boolean;
-  vidaDiscurso: boolean;
-  vidaCondutor: boolean;
-  vidaLeitor: boolean;
-  oracao: boolean;
-  pubPresidente: boolean;
-  pubDiscurso: boolean;
-  pubSentinelaCondutor: boolean;
-  pubSentinelaLeitor: boolean;
-}
+// Fase 23 — publishers store simplificado (sem privilegios granulares).
+// Neon first, in-memory fallback. Sexo: hombre/mujer.
 
 export interface Publisher {
   id: string;
@@ -38,69 +16,11 @@ export interface Publisher {
   telefono?: string;
   userId?: string;
   familiaId?: string | null;
-  privileges: PublisherPrivileges;
   createdAt: string;
 }
 
 // In-memory fallback
 const memPublishers = new Map<string, Publisher[]>();
-
-const MALE_ONLY_FIELDS: (keyof PublisherPrivileges)[] = [
-  'presidenteSemana', 'tesourosDiscurso', 'tesourosJoias', 'tesourosLeitura',
-  'ministerioDiscurso', 'ministerioOque', 'vidaDiscurso', 'vidaCondutor', 'vidaLeitor',
-  'oracao', 'pubPresidente', 'pubDiscurso', 'pubSentinelaCondutor', 'pubSentinelaLeitor'
-];
-
-const ELDER_OR_SERVANT_FIELDS: (keyof PublisherPrivileges)[] = [
-  'presidenteSemana', 'tesourosDiscurso', 'tesourosJoias',
-  'ministerioOque', 'vidaDiscurso', 'vidaCondutor',
-  'pubPresidente', 'pubDiscurso', 'pubSentinelaCondutor'
-];
-
-const DEFAULT_PRIVILEGES: PublisherPrivileges = {
-  cabezaFamilia: false,
-  presidenteSemana: false,
-  tesourosDiscurso: false,
-  tesourosJoias: false,
-  tesourosLeitura: false,
-  ministerioIniciar: true,
-  ministerioCultivar: true,
-  ministerioDiscipulos: true,
-  ministerioExplicar: true,
-  ministerioAjudante: true,
-  ministerioDiscurso: true,
-  ministerioOque: false,
-  vidaDiscurso: false,
-  vidaCondutor: false,
-  vidaLeitor: false,
-  oracao: false,
-  pubPresidente: false,
-  pubDiscurso: false,
-  pubSentinelaCondutor: false,
-  pubSentinelaLeitor: false,
-};
-
-export function applyPrivilegeDefaults(
-  sexo: string,
-  cargo: string,
-  privileges: Partial<PublisherPrivileges>
-): PublisherPrivileges {
-  const result = { ...DEFAULT_PRIVILEGES, ...privileges };
-
-  if (sexo !== 'M') {
-    for (const field of MALE_ONLY_FIELDS) {
-      result[field] = false;
-    }
-  }
-
-  if (!['anciano', 'siervo_ministerial'].includes(cargo)) {
-    for (const field of ELDER_OR_SERVANT_FIELDS) {
-      result[field] = false;
-    }
-  }
-
-  return result;
-}
 
 function rowToPublisher(r: Record<string, unknown>): Publisher {
   return {
@@ -113,28 +33,6 @@ function rowToPublisher(r: Record<string, unknown>): Publisher {
     telefono: r.telefono ? String(r.telefono) : undefined,
     userId: r.userId ? String(r.userId) : undefined,
     familiaId: r.familiaId ? String(r.familiaId) : null,
-    privileges: {
-      cabezaFamilia: Boolean(r.cabezaFamilia),
-      presidenteSemana: Boolean(r.presidenteSemana),
-      tesourosDiscurso: Boolean(r.tesourosDiscurso),
-      tesourosJoias: Boolean(r.tesourosJoias),
-      tesourosLeitura: Boolean(r.tesourosLeitura),
-      ministerioIniciar: Boolean(r.ministerioIniciar),
-      ministerioCultivar: Boolean(r.ministerioCultivar),
-      ministerioDiscipulos: Boolean(r.ministerioDiscipulos),
-      ministerioExplicar: Boolean(r.ministerioExplicar),
-      ministerioAjudante: Boolean(r.ministerioAjudante),
-      ministerioDiscurso: Boolean(r.ministerioDiscurso),
-      ministerioOque: Boolean(r.ministerioOque),
-      vidaDiscurso: Boolean(r.vidaDiscurso),
-      vidaCondutor: Boolean(r.vidaCondutor),
-      vidaLeitor: Boolean(r.vidaLeitor),
-      oracao: Boolean(r.oracao),
-      pubPresidente: Boolean(r.pubPresidente),
-      pubDiscurso: Boolean(r.pubDiscurso),
-      pubSentinelaCondutor: Boolean(r.pubSentinelaCondutor),
-      pubSentinelaLeitor: Boolean(r.pubSentinelaLeitor),
-    },
     createdAt: r.createdAt ? String(r.createdAt) : new Date().toISOString(),
   };
 }
@@ -183,16 +81,15 @@ export async function getPublisher(congregationId: string, id: string): Promise<
 
 export async function createPublisher(
   congregationId: string,
-  data: { 
-    nombre: string; 
-    sexo: string; 
-    cargo?: string; 
+  data: {
+    nombre: string;
+    sexo: string;
+    cargo?: string;
     telefono?: string;
-    privileges?: Partial<PublisherPrivileges>;
+    familiaId?: string | null;
   }
 ): Promise<Publisher> {
   const cargo = data.cargo ?? 'publicador';
-  const privileges = applyPrivilegeDefaults(data.sexo, cargo, data.privileges ?? {});
 
   const pub: Publisher = {
     id: randomUUID(),
@@ -202,7 +99,7 @@ export async function createPublisher(
     cargo,
     activo: true,
     telefono: data.telefono,
-    privileges,
+    familiaId: data.familiaId ?? null,
     createdAt: new Date().toISOString(),
   };
 
@@ -218,26 +115,7 @@ export async function createPublisher(
           cargo: pub.cargo,
           activo: pub.activo,
           telefono: pub.telefono ?? null,
-          cabezaFamilia: privileges.cabezaFamilia,
-          presidenteSemana: privileges.presidenteSemana,
-          tesourosDiscurso: privileges.tesourosDiscurso,
-          tesourosJoias: privileges.tesourosJoias,
-          tesourosLeitura: privileges.tesourosLeitura,
-          ministerioIniciar: privileges.ministerioIniciar,
-          ministerioCultivar: privileges.ministerioCultivar,
-          ministerioDiscipulos: privileges.ministerioDiscipulos,
-          ministerioExplicar: privileges.ministerioExplicar,
-          ministerioAjudante: privileges.ministerioAjudante,
-          ministerioDiscurso: privileges.ministerioDiscurso,
-          ministerioOque: privileges.ministerioOque,
-          vidaDiscurso: privileges.vidaDiscurso,
-          vidaCondutor: privileges.vidaCondutor,
-          vidaLeitor: privileges.vidaLeitor,
-          oracao: privileges.oracao,
-          pubPresidente: privileges.pubPresidente,
-          pubDiscurso: privileges.pubDiscurso,
-          pubSentinelaCondutor: privileges.pubSentinelaCondutor,
-          pubSentinelaLeitor: privileges.pubSentinelaLeitor,
+          familiaId: pub.familiaId ?? null,
         });
         return pub;
       }
@@ -261,7 +139,7 @@ export async function updatePublisher(
     cargo: string;
     telefono: string;
     activo: boolean;
-    privileges: Partial<PublisherPrivileges>;
+    familiaId: string | null;
   }>
 ): Promise<Publisher | undefined> {
   if (isDbConfigured()) {
@@ -277,41 +155,13 @@ export async function updatePublisher(
           ));
         if (!rows[0]) return undefined;
 
-        const current = rowToPublisher(rows[0]);
-        const newSexo = data.sexo ?? current.sexo;
-        const newCargo = data.cargo ?? current.cargo;
-        const newPrivileges = data.privileges
-          ? applyPrivilegeDefaults(newSexo, newCargo, { ...current.privileges, ...data.privileges })
-          : current.privileges;
-
         const sets: Record<string, unknown> = {};
         if (data.nombre !== undefined) sets.nombre = data.nombre;
         if (data.sexo !== undefined) sets.sexo = data.sexo;
         if (data.cargo !== undefined) sets.cargo = data.cargo;
         if (data.telefono !== undefined) sets.telefono = data.telefono;
         if (data.activo !== undefined) sets.activo = data.activo;
-        if (data.privileges !== undefined) {
-          sets.cabezaFamilia = newPrivileges.cabezaFamilia;
-          sets.presidenteSemana = newPrivileges.presidenteSemana;
-          sets.tesourosDiscurso = newPrivileges.tesourosDiscurso;
-          sets.tesourosJoias = newPrivileges.tesourosJoias;
-          sets.tesourosLeitura = newPrivileges.tesourosLeitura;
-          sets.ministerioIniciar = newPrivileges.ministerioIniciar;
-          sets.ministerioCultivar = newPrivileges.ministerioCultivar;
-          sets.ministerioDiscipulos = newPrivileges.ministerioDiscipulos;
-          sets.ministerioExplicar = newPrivileges.ministerioExplicar;
-          sets.ministerioAjudante = newPrivileges.ministerioAjudante;
-          sets.ministerioDiscurso = newPrivileges.ministerioDiscurso;
-          sets.ministerioOque = newPrivileges.ministerioOque;
-          sets.vidaDiscurso = newPrivileges.vidaDiscurso;
-          sets.vidaCondutor = newPrivileges.vidaCondutor;
-          sets.vidaLeitor = newPrivileges.vidaLeitor;
-          sets.oracao = newPrivileges.oracao;
-          sets.pubPresidente = newPrivileges.pubPresidente;
-          sets.pubDiscurso = newPrivileges.pubDiscurso;
-          sets.pubSentinelaCondutor = newPrivileges.pubSentinelaCondutor;
-          sets.pubSentinelaLeitor = newPrivileges.pubSentinelaLeitor;
-        }
+        if (data.familiaId !== undefined) sets.familiaId = data.familiaId;
         if (Object.keys(sets).length > 0) {
           await db.update(publishersTable).set(sets).where(eq(publishersTable.id, id));
         }
@@ -332,11 +182,7 @@ export async function updatePublisher(
   if (data.cargo !== undefined) pub.cargo = data.cargo;
   if (data.telefono !== undefined) pub.telefono = data.telefono;
   if (data.activo !== undefined) pub.activo = data.activo;
-  if (data.privileges !== undefined) {
-    const newSexo = data.sexo ?? pub.sexo;
-    const newCargo = data.cargo ?? pub.cargo;
-    pub.privileges = applyPrivilegeDefaults(newSexo, newCargo, { ...pub.privileges, ...data.privileges });
-  }
+  if (data.familiaId !== undefined) pub.familiaId = data.familiaId;
   list[idx] = pub;
   return pub;
 }
@@ -377,7 +223,6 @@ export function seedPublishers(congregationId: string): void {
       congregationId,
       ...n,
       activo: true,
-      privileges: applyPrivilegeDefaults(n.sexo, n.cargo, {}),
       createdAt: new Date().toISOString(),
     };
     const list = memPublishers.get(congregationId) ?? [];

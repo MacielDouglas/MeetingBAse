@@ -24,6 +24,8 @@ export interface SyncMeeting {
   cancion_inicial?: number | null;
   cancion_intermedia?: number | null;
   cancion_final?: number | null;
+  excepcion?: string | null;
+  visita_co?: boolean;
 }
 
 export interface SyncPart {
@@ -38,6 +40,7 @@ export interface SyncPart {
   needs_review?: boolean;
   duracion_min?: number | null;
   hora_inicio?: string | null;
+  hora_fin?: string | null;
 }
 
 export interface SyncAssignment {

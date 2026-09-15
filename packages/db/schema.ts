@@ -32,26 +32,6 @@ export const publishers = pgTable("publishers", {
   activo: boolean("activo").default(true).notNull(),
   telefono: text("telefono"),
   familiaId: uuid("familia_id"),
-  cabezaFamilia: boolean("cabeza_familia").default(false),
-  presidenteSemana: boolean("presidente_semana").default(false),
-  tesourosDiscurso: boolean("tesouros_discurso").default(false),
-  tesourosJoias: boolean("tesouros_joias").default(false),
-  tesourosLeitura: boolean("tesouros_leitura").default(false),
-  ministerioIniciar: boolean("ministerio_iniciar").default(true),
-  ministerioCultivar: boolean("ministerio_cultivar").default(true),
-  ministerioDiscipulos: boolean("ministerio_discipulos").default(true),
-  ministerioExplicar: boolean("ministerio_explicar").default(true),
-  ministerioAjudante: boolean("ministerio_ajudante").default(true),
-  ministerioDiscurso: boolean("ministerio_discurso").default(true),
-  ministerioOque: boolean("ministerio_oque").default(false),
-  vidaDiscurso: boolean("vida_discurso").default(false),
-  vidaCondutor: boolean("vida_condutor").default(false),
-  vidaLeitor: boolean("vida_leitor").default(false),
-  oracao: boolean("oracao").default(false),
-  pubPresidente: boolean("pub_presidente").default(false),
-  pubDiscurso: boolean("pub_discurso").default(false),
-  pubSentinelaCondutor: boolean("pub_sentinela_condutor").default(false),
-  pubSentinelaLeitor: boolean("pub_sentinela_leitor").default(false),
 }, (t) => ({ idx_pub_cong: index("idx_pub_cong").on(t.congregationId, t.activo) }));
 
 export const meetings = pgTable("meetings", {
@@ -69,6 +49,8 @@ export const meetings = pgTable("meetings", {
   estado: text("estado").default("draft").notNull(),
   version: integer("version").default(1).notNull(),
   horaInicio: text("hora_inicio"),
+  excepcion: text("excepcion"), // null=normal, "convencao", "sin_reunion", "convencao_virtual"
+  visitaCO: boolean("visita_co").default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({ uq_meeting: uniqueIndex("uq_meeting").on(t.congregationId, t.fecha, t.tipo) }));
 
@@ -86,6 +68,7 @@ export const parts = pgTable("parts", {
   requiereAyudante: boolean("requiere_ayudante").default(false).notNull(),
   needsReview: boolean("needs_review").default(false).notNull(),
   horaInicio: text("hora_inicio"),
+  horaFin: text("hora_fin"),
 }, (t) => ({ uq_part_orden: uniqueIndex("uq_part_orden").on(t.meetingId, t.orden) }));
 
 export const assignments = pgTable("assignments", {
@@ -143,7 +126,7 @@ export const imports = pgTable("imports", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({ idx_imports_cong: index("idx_imports_cong").on(t.congregationId) }));
 
-// Fase 5 — speakers (falantes públicos) + visits (visitantes).
+// Fase 5 — oradores públicos + visitas.
 export const speakers = pgTable("speakers", {
   id: uuid("id").defaultRandom().primaryKey(),
   congregationId: uuid("congregation_id").notNull(),

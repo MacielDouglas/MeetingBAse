@@ -152,7 +152,6 @@ const canLeadEbc = (cargo: string) => EBC_OK.has(cargo.trim().toLowerCase());
 interface PartFilter {
   maleOnly?: boolean;
   ebcOnly?: boolean;
-  privilege?: string;
 }
 
 const PART_FILTERS: Record<string, PartFilter> = {
@@ -177,7 +176,6 @@ const PART_FILTERS: Record<string, PartFilter> = {
 function matchesFilter(p: Publisher, filter: PartFilter): boolean {
   if (filter.maleOnly && !isMale(p.sexo)) return false;
   if (filter.ebcOnly && !canLeadEbc(p.cargo)) return false;
-  if (filter.privilege && !p.privileges[filter.privilege as keyof typeof p.privileges]) return false;
   return true;
 }
 

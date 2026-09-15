@@ -241,6 +241,8 @@ export function listMemDetailed(congregationId: string): ListedMeeting[] {
     cancion_inicial: m.cancion_inicial ?? null,
     cancion_intermedia: m.cancion_intermedia ?? null,
     cancion_final: m.cancion_final ?? null,
+    excepcion: null,
+    visita_co: false,
     parts_count: m.parts.length,
     parts: m.parts.map((x) => ({
       id: x.id,
@@ -253,6 +255,7 @@ export function listMemDetailed(congregationId: string): ListedMeeting[] {
       needs_review: x.needsReview ?? false,
       duracion_min: x.duracionMin ?? null,
       hora_inicio: x.horaInicio ?? null,
+      hora_fin: x.horaFin ?? null,
     })),
   }));
 }

@@ -18,6 +18,7 @@ export interface PartDraft {
   requiereAyudante: boolean;
   needsReview?: boolean;
   horaInicio?: string;
+  horaFin?: string;
 }
 
 export type PubKind = "mwb" | "w" | "s34" | "sjj";
@@ -44,6 +45,12 @@ function songTitle(n: unknown): { titulo: string; needsReview: boolean } {
   const v = num(n);
   if (v === undefined) return { titulo: "Canción — por confirmar", needsReview: true };
   return { titulo: `Canción ${v}`, needsReview: false };
+}
+
+// Resolve nome do cântico a partir do catálogo sjj
+export function resolveSongTitle(numero: number, songCatalog: Map<number, string>): string {
+  const title = songCatalog.get(numero);
+  return title ? `Canción ${numero} — ${title}` : `Canción ${numero}`;
 }
 
 function emptySlot(orden: number, seccion: string, tipoClave: string): PartDraft {
@@ -223,7 +230,7 @@ function toHHMM(min: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-// Preenche horaInicio de cada parte a partir do início da reunião.
+// Preenche horaInicio e horaFin de cada parte a partir do início da reunião.
 // Sem horário base, mantém undefined.
 export function applyStartTimes(base: string | null, parts: PartDraft[]): void {
   const start = base ? toMin(base) : null;
@@ -231,7 +238,9 @@ export function applyStartTimes(base: string | null, parts: PartDraft[]): void {
   let acc = start;
   for (const p of parts) {
     p.horaInicio = toHHMM(acc);
-    acc += typeof p.duracionMin === "number" ? p.duracionMin : 0;
+    const dur = typeof p.duracionMin === "number" ? p.duracionMin : 0;
+    p.horaFin = toHHMM(acc + dur);
+    acc += dur;
   }
 }
 export function mapSjjToParts(row: MwbRow): PartDraft[] {

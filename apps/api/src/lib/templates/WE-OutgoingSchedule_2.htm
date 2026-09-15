@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>!CONGREGATION_TITLE! — Oradores externos — !DATE!</title>
+<style>
+  body { font-family: Georgia, serif; margin: 24px; font-size: 13px; color: #222; }
+  h1 { font-size: 17px; text-align: center; border-bottom: 2px solid #7d3c98; padding-bottom: 6px; }
+  h2 { font-size: 14px; color: #fff; background: #7d3c98; padding: 4px 8px; margin: 12px 0 4px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 5px 6px; border-bottom: 1px dotted #ccc; vertical-align: top; }
+  .date { font-weight: bold; color: #7d3c98; white-space: nowrap; width: 80px; }
+  .speaker { font-weight: bold; }
+  .theme { color: #555; }
+</style>
+</head>
+<body>
+<h1>!CONGREGATION_TITLE! — Oradores externos — !DATE!</h1>
+
+<h2>Calendario de oradores</h2>
+<table>
+#REPEAT_START!visits!#
+<tr>
+  <td class="date">!visit_fecha!</td>
+  <td>
+    <span class="speaker">!visit_speaker!</span><br>
+    <span class="theme">!visit_talk!</span>
+    #IF !visit_notas!#<br><small>!visit_notas!</small>#ENDIF#
+  </td>
+</tr>
+#REPEAT_END#
+</table>
+
+</body>
+</html>
