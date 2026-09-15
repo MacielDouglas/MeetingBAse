@@ -322,8 +322,6 @@ export default function ConfigScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Configuración"]}</Text>
-
       {isLoading ? <Text>Cargando...</Text> : null}
 
       <View style={{ gap: 8, padding: 12, backgroundColor: "#eaf2f8", borderRadius: 8, borderWidth: 1, borderColor: "#aed6f1" }}>

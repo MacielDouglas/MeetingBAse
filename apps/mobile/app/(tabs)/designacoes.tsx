@@ -26,7 +26,6 @@ export default function Designacoes() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>{es["Designações"]}</Text>
       <Text style={{ fontSize: 14, color: "#666" }}>Acceda a las diferentes secciones</Text>
 
       <View style={{ gap: 10, marginTop: 8 }}>

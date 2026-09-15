@@ -123,12 +123,9 @@ export default function Inicio() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ fontSize: 22, fontWeight: "bold" }}>{es["Inicio"]}</Text>
-        {offline ? (
-          <Text style={{ fontSize: 12, color: "#e74c3c" }}>{es["Sin conexión"]}</Text>
-        ) : null}
-      </View>
+      {offline ? (
+        <Text style={{ fontSize: 12, color: "#e74c3c" }}>{es["Sin conexión"]}</Text>
+      ) : null}
 
       {isPending ? <SkeletonRow lines={3} /> : null}
 
